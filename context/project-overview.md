@@ -335,6 +335,14 @@ flowchart TB
 **Vibe:** modern, minimal, developer-focused. Dark mode by default, light optional. Clean typography, generous whitespace, subtle borders/shadows, syntax highlighting for code blocks.
 **References:** [Notion](https://notion.so) · [Linear](https://linear.app) · [Raycast](https://raycast.com)
 
+## Screenshots
+
+Refer to the screenshots below as a base for the dashboard UI. It does not have to be exact. Use it as a reference:
+
+- @context/screnshots/dashboard-ui-main.png
+- @context/screnshots/dashboard-ui-drawer.png
+
+
 ### Layout
 - **Sidebar + main content** (collapsible sidebar).
 - **Sidebar:** item types linking to item lists (Snippets, Commands, …) + latest collections.
