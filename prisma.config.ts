@@ -5,6 +5,8 @@ export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: {
     path: "prisma/migrations",
+    // Prisma 7 seeding is explicit — run `npx prisma db seed`.
+    seed: "tsx prisma/seed.ts",
   },
   datasource: {
     // Neon PostgreSQL. Use the DEVELOPMENT branch connection string in `.env`.
