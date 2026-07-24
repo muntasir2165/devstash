@@ -1,28 +1,25 @@
 import { Pin, Star } from "lucide-react";
 
-import type { Item } from "@/lib/mock-data";
-import { getItemType } from "@/lib/item-types";
+import type { ItemSummary } from "@/lib/db/items";
 
 import { TypeIcon } from "./TypeIcon";
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("en-US", {
+function formatDate(date: Date) {
+  return date.toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
     timeZone: "UTC",
   });
 }
 
-export function ItemCard({ item }: { item: Item }) {
-  const type = getItemType(item.typeId);
-
+export function ItemCard({ item }: { item: ItemSummary }) {
   return (
     <div
       className="flex gap-3 rounded-xl border border-l-4 bg-card p-4"
-      style={{ borderLeftColor: type?.color }}
+      style={{ borderLeftColor: item.color }}
     >
       <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted">
-        <TypeIcon typeId={item.typeId} />
+        <TypeIcon icon={item.icon} color={item.color} />
       </div>
 
       <div className="min-w-0 flex-1">
@@ -41,9 +38,11 @@ export function ItemCard({ item }: { item: Item }) {
           </span>
         </div>
 
-        <p className="mt-1 line-clamp-1 text-sm text-muted-foreground">
-          {item.description}
-        </p>
+        {item.description && (
+          <p className="mt-1 line-clamp-1 text-sm text-muted-foreground">
+            {item.description}
+          </p>
+        )}
 
         {item.tags.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1.5">

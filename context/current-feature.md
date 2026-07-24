@@ -1,6 +1,6 @@
 # Current Feature
 
-Dashboard Collections — replace the dummy collection data in the main dashboard area (right side) with real data from the Neon database via Prisma, keeping the current design.
+Dashboard Items — replace the dummy item data in the main dashboard area (right side) with real data from the Neon database via Prisma, keeping the current design. Covers both pinned and recent items.
 
 ## Status
 
@@ -8,19 +8,19 @@ Complete
 
 ## Goals
 
-- Create `src/lib/db/collections.ts` with data-fetching functions for collections.
-- Fetch collections directly in the dashboard server component (replace `@src/lib/mock-data.ts` usage for the 6 recent collection cards).
-- Derive each collection card's border/accent color from the most-used content type in that collection.
-- Show small icons for all content types present in each collection.
-- Update the collection stats display.
-- Keep the current design and layout (6 recent collection cards); reference `@context/screenshots/dashboard-ui-main.png`.
-- Do **not** add the items underneath the collections yet — that comes in a later feature.
+- Create `src/lib/db/items.ts` with data-fetching functions for items (pinned + recent).
+- Fetch items directly in the dashboard server component (replace `@src/lib/mock-data.ts` usage for the pinned and recent item lists).
+- Derive each item card's icon/border from the item's type.
+- Display item type tags and everything currently shown on the item cards.
+- Update the collection stats display to use real data.
+- If there are no pinned items, render nothing in the pinned section.
+- Keep the current design and layout; reference `@context/screenshots/dashboard-ui-main.png`.
 
 ## Notes
 
-- Scope is only the collection cards in the main area (right side) — the recent-collections grid.
+- Scope is only the pinned and recent item lists in the main area (right side).
 - Use the existing Prisma client singleton (`src/lib/prisma.ts`) and the seeded Neon data.
-- Reference: `@context/features/dashboard-collections-spec.md`.
+- Reference: `@context/features/dashboard-items-spec.md`.
 
 ## History
 
@@ -33,3 +33,4 @@ Complete
 - **2026-07-23 — Prisma 7 + Neon PostgreSQL setup.** On branch `feature/prisma-neon-setup`. Installed `prisma`/`@prisma/client` 7.9.0 with the `@prisma/adapter-pg` driver adapter (`pg`, `dotenv`, `@types/pg`). Applied Prisma 7 breaking changes: new ESM-first `prisma-client` generator with required `output` (`src/generated/prisma`, git/ESLint-ignored); DB URL moved out of the `datasource` block into `prisma.config.ts`; driver-adapter client singleton in `src/lib/prisma.ts` (hot-reload-safe global). Added the full schema (User/Account/Session/VerificationToken + Item/ItemType/Collection/ItemCollection/Tag, `ContentType` enum, indexes, cascade deletes) and `.env`/`.env.example`. Added `db:*` scripts + `postinstall: prisma generate` (migrations only — no `db push`). Created and applied the initial migration `20260724031415_init` to the Neon dev branch; `prisma migrate status` clean. `npm run build` and `npm run lint` pass.
 - **2026-07-23 — Seed data.** On branch `feature/seed-data`. Added `User.hashedPassword` (nullable, for credentials login) via migration `20260724034852_add_user_password`; installed `bcryptjs` (+ types). Registered the seed command in `prisma.config.ts` (`migrations.seed = "tsx prisma/seed.ts"`) and wrote an idempotent `prisma/seed.ts` (clears in FK-safe order, then reseeds). Seeds a demo user (`demo@devstash.io` / `12345678`, bcrypt 12 rounds, `emailVerified` now), the 7 system item types, and 5 collections with 18 items total (React Patterns ×3 snippets, AI Workflows ×3 prompts, DevOps = snippet + command + 2 links, Terminal Commands ×4, Design Resources ×4 links; links use real URLs). `npx prisma db seed` populated the Neon dev branch (verified counts 1/7/18/5). `npm run build` and `npm run lint` pass.
 - **2026-07-23 — Dashboard Collections (real data).** On branch `feature/dashboard-collections`. Replaced the mock collections in the dashboard grid with live Neon/Prisma data. Added `src/lib/db/collections.ts` with `getRecentCollections()` (6 most-recently-updated collections, each with real item count + distinct item types ordered most-used-first) and `getCollectionStats()`. Made the dashboard route `async` + `force-dynamic` and refactored `CollectionCard` to the DB `CollectionSummary` shape (accent border from the dominant type, icons for all present types). Extended `TypeIcon` to accept an explicit `icon`/`color` (kept the `typeId` mock path for `ItemCard`). Wired `StatsCards` collection counts to the DB (item stats still mock — deferred). Items under collections intentionally not added yet. `npm run build` and `npm run lint` pass; verified in the browser (5 seeded collections render with correct colors/icons/counts).
+- **2026-07-24 — Dashboard Items (real data).** On branch `feature/dashboard-items`. Replaced the mock pinned/recent items in the dashboard with live Neon/Prisma data. Added `src/lib/db/items.ts` with `getPinnedItems()`, `getRecentItems(10)`, and `getItemStats()` (plus an `ItemSummary` shape — icon/color from the item's type, tags, pin/favorite flags, date). Refactored `ItemCard` to the DB `ItemSummary` shape (accent border + icon from the type via `TypeIcon`'s explicit `icon`/`color` props; guarded null description and empty tags). Made the dashboard page fetch collections + pinned + recent items in parallel and hide the Pinned section when empty. Wired `StatsCards` Total Items + Favorite Items to the DB (all four stats now real). Seed has no pinned/favorite items or tags, so those render empty by design. `npm run build` and `npm run lint` pass; verified via DOM snapshot (Total Items 18, Collections 5, Favorites 0, Pinned hidden, recent items from seed).

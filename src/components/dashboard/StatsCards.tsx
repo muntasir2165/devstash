@@ -1,15 +1,18 @@
 import { FileStack, FolderHeart, FolderOpen, Star } from "lucide-react";
 
-import { items, itemTypes } from "@/lib/mock-data";
 import { getCollectionStats } from "@/lib/db/collections";
+import { getItemStats } from "@/lib/db/items";
 
 export async function StatsCards() {
-  const collectionStats = await getCollectionStats();
+  const [collectionStats, itemStats] = await Promise.all([
+    getCollectionStats(),
+    getItemStats(),
+  ]);
 
   const stats = [
     {
       label: "Total Items",
-      value: itemTypes.reduce((sum, type) => sum + type.count, 0),
+      value: itemStats.total,
       icon: FileStack,
     },
     {
@@ -19,7 +22,7 @@ export async function StatsCards() {
     },
     {
       label: "Favorite Items",
-      value: items.filter((item) => item.isFavorite).length,
+      value: itemStats.favorites,
       icon: Star,
     },
     {
