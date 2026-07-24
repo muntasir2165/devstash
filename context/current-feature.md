@@ -1,29 +1,26 @@
 # Current Feature
 
-Seed Data — create a Prisma seed script (`prisma/seed.ts`) to populate the dev database with sample data for development and demos.
+Dashboard Collections — replace the dummy collection data in the main dashboard area (right side) with real data from the Neon database via Prisma, keeping the current design.
 
 ## Status
 
-In Progress
+Complete
 
 ## Goals
 
-- Create/overwrite `prisma/seed.ts` and wire it up so `npx prisma db seed` runs it (Prisma 7 seeding is explicit — `migrate dev` no longer auto-seeds).
-- Seed a demo **User**: `demo@devstash.io`, name "Demo User", password `12345678` hashed with **bcryptjs** (12 rounds), `isPro: false`, `emailVerified: now`.
-- Seed the 7 **system item types** (`isSystem: true`) with Lucide icon + hex color: snippet/`Code`/#3b82f6, prompt/`Sparkles`/#8b5cf6, command/`Terminal`/#f97316, note/`StickyNote`/#fde047, file/`File`/#6b7280, image/`Image`/#ec4899, link/`Link`/#10b981.
-- Seed 5 **collections** with items linked via `ItemCollection`:
-  - React Patterns — 3 TypeScript snippets (custom hooks, component patterns, utilities).
-  - AI Workflows — 3 prompts (code review, doc generation, refactoring).
-  - DevOps — 1 snippet + 1 command + 2 links (real URLs).
-  - Terminal Commands — 4 commands (git, docker, process mgmt, package manager).
-  - Design Resources — 4 links (real URLs: CSS/Tailwind, component libs, design systems, icons).
+- Create `src/lib/db/collections.ts` with data-fetching functions for collections.
+- Fetch collections directly in the dashboard server component (replace `@src/lib/mock-data.ts` usage for the 6 recent collection cards).
+- Derive each collection card's border/accent color from the most-used content type in that collection.
+- Show small icons for all content types present in each collection.
+- Update the collection stats display.
+- Keep the current design and layout (6 recent collection cards); reference `@context/screenshots/dashboard-ui-main.png`.
+- Do **not** add the items underneath the collections yet — that comes in a later feature.
 
 ## Notes
 
-- Install `bcryptjs` (+ `@types/bcryptjs`) for password hashing.
-- Make the seed idempotent (e.g. `upsert` / clear-then-insert) so it can be re-run safely.
-- Items reference an `itemType` and belong to collections through the `ItemCollection` join table.
-- Reference: `@context/features/seed-spec.md`.
+- Scope is only the collection cards in the main area (right side) — the recent-collections grid.
+- Use the existing Prisma client singleton (`src/lib/prisma.ts`) and the seeded Neon data.
+- Reference: `@context/features/dashboard-collections-spec.md`.
 
 ## History
 
@@ -35,3 +32,4 @@ In Progress
 - **2026-07-23 — Dashboard UI Phase 3 (main area).** Built the dashboard main content: header, 4 stats cards (total items, collections, favorite items, favorite collections), a Collections grid (`CollectionCard` with type-color accent + type icons), a Pinned items list, and the 10 most recent items (`ItemCard`). Added a shared `TypeIcon` and `getItemType` lookup over the mock data. `npm run build` and `npm run lint` pass; verified in the browser (all sections render, dark mode).
 - **2026-07-23 — Prisma 7 + Neon PostgreSQL setup.** On branch `feature/prisma-neon-setup`. Installed `prisma`/`@prisma/client` 7.9.0 with the `@prisma/adapter-pg` driver adapter (`pg`, `dotenv`, `@types/pg`). Applied Prisma 7 breaking changes: new ESM-first `prisma-client` generator with required `output` (`src/generated/prisma`, git/ESLint-ignored); DB URL moved out of the `datasource` block into `prisma.config.ts`; driver-adapter client singleton in `src/lib/prisma.ts` (hot-reload-safe global). Added the full schema (User/Account/Session/VerificationToken + Item/ItemType/Collection/ItemCollection/Tag, `ContentType` enum, indexes, cascade deletes) and `.env`/`.env.example`. Added `db:*` scripts + `postinstall: prisma generate` (migrations only — no `db push`). Created and applied the initial migration `20260724031415_init` to the Neon dev branch; `prisma migrate status` clean. `npm run build` and `npm run lint` pass.
 - **2026-07-23 — Seed data.** On branch `feature/seed-data`. Added `User.hashedPassword` (nullable, for credentials login) via migration `20260724034852_add_user_password`; installed `bcryptjs` (+ types). Registered the seed command in `prisma.config.ts` (`migrations.seed = "tsx prisma/seed.ts"`) and wrote an idempotent `prisma/seed.ts` (clears in FK-safe order, then reseeds). Seeds a demo user (`demo@devstash.io` / `12345678`, bcrypt 12 rounds, `emailVerified` now), the 7 system item types, and 5 collections with 18 items total (React Patterns ×3 snippets, AI Workflows ×3 prompts, DevOps = snippet + command + 2 links, Terminal Commands ×4, Design Resources ×4 links; links use real URLs). `npx prisma db seed` populated the Neon dev branch (verified counts 1/7/18/5). `npm run build` and `npm run lint` pass.
+- **2026-07-23 — Dashboard Collections (real data).** On branch `feature/dashboard-collections`. Replaced the mock collections in the dashboard grid with live Neon/Prisma data. Added `src/lib/db/collections.ts` with `getRecentCollections()` (6 most-recently-updated collections, each with real item count + distinct item types ordered most-used-first) and `getCollectionStats()`. Made the dashboard route `async` + `force-dynamic` and refactored `CollectionCard` to the DB `CollectionSummary` shape (accent border from the dominant type, icons for all present types). Extended `TypeIcon` to accept an explicit `icon`/`color` (kept the `typeId` mock path for `ItemCard`). Wired `StatsCards` collection counts to the DB (item stats still mock — deferred). Items under collections intentionally not added yet. `npm run build` and `npm run lint` pass; verified in the browser (5 seeded collections render with correct colors/icons/counts).

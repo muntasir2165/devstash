@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Pin } from "lucide-react";
 
-import { collections, items } from "@/lib/mock-data";
+import { items } from "@/lib/mock-data";
+import { getRecentCollections } from "@/lib/db/collections";
 import { CollectionCard } from "@/components/dashboard/CollectionCard";
 import { ItemCard } from "@/components/dashboard/ItemCard";
 import { StatsCards } from "@/components/dashboard/StatsCards";
@@ -11,7 +12,12 @@ export const metadata: Metadata = {
   title: "Dashboard | DevStash",
 };
 
-export default function DashboardPage() {
+// Collections are read from the database on each request.
+export const dynamic = "force-dynamic";
+
+export default async function DashboardPage() {
+  const collections = await getRecentCollections();
+
   const pinnedItems = items.filter((item) => item.isPinned);
   const recentItems = [...items]
     .sort(

@@ -14,21 +14,32 @@ import { cn } from "@/lib/utils";
 
 export function TypeIcon({
   typeId,
+  icon,
+  color,
   className,
   withColor = true,
 }: {
-  typeId: string;
+  /** Look up icon/color from the mock item types by id. */
+  typeId?: string;
+  /** Explicit Lucide icon name (takes precedence over `typeId`). */
+  icon?: string;
+  /** Explicit hex color (takes precedence over `typeId`). */
+  color?: string;
   className?: string;
   withColor?: boolean;
 }) {
-  const type = getItemType(typeId);
+  const type = typeId ? getItemType(typeId) : undefined;
+  const iconName = icon ?? type?.icon;
+  const resolvedColor = color ?? type?.color;
   const props = {
     className: cn("size-4 shrink-0", className),
     style:
-      withColor && type ? ({ color: type.color } as CSSProperties) : undefined,
+      withColor && resolvedColor
+        ? ({ color: resolvedColor } as CSSProperties)
+        : undefined,
   };
 
-  switch (type?.icon) {
+  switch (iconName) {
     case "Code":
       return <Code {...props} />;
     case "Sparkles":

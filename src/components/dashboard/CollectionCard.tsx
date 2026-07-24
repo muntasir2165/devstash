@@ -1,13 +1,16 @@
 import Link from "next/link";
 import { MoreHorizontal, Star } from "lucide-react";
 
-import type { Collection } from "@/lib/mock-data";
-import { getItemType } from "@/lib/item-types";
+import type { CollectionSummary } from "@/lib/db/collections";
 
 import { TypeIcon } from "./TypeIcon";
 
-export function CollectionCard({ collection }: { collection: Collection }) {
-  const dominantType = getItemType(collection.typeIds[0]);
+export function CollectionCard({
+  collection,
+}: {
+  collection: CollectionSummary;
+}) {
+  const dominantType = collection.types[0];
 
   return (
     <Link
@@ -29,13 +32,15 @@ export function CollectionCard({ collection }: { collection: Collection }) {
         {collection.itemCount} items
       </span>
 
-      <p className="line-clamp-2 text-sm text-muted-foreground">
-        {collection.description}
-      </p>
+      {collection.description && (
+        <p className="line-clamp-2 text-sm text-muted-foreground">
+          {collection.description}
+        </p>
+      )}
 
       <div className="mt-1 flex items-center gap-2">
-        {collection.typeIds.map((typeId) => (
-          <TypeIcon key={typeId} typeId={typeId} />
+        {collection.types.map((type) => (
+          <TypeIcon key={type.id} icon={type.icon} color={type.color} />
         ))}
       </div>
     </Link>
