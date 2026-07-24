@@ -1,0 +1,163 @@
+// schema.prisma — DevStash
+// Prisma 7: uses the ESM-first `prisma-client` generator with a required custom
+// output path. The database URL is configured in `prisma.config.ts` (not here).
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Enums ─────────────────────────────────────────────
+enum ContentType {
+  TEXT
+  FILE
+  URL
+}
+
+// ─── Auth (Auth.js v5) ─────────────────────────────────
+model User {
+  id                   String       @id @default(cuid())
+  name                 String?
+  email                String?      @unique
+  emailVerified        DateTime?
+  image                String?
+
+  // Billing
+  isPro                Boolean      @default(false)
+  stripeCustomerId     String?      @unique
+  stripeSubscriptionId String?      @unique
+
+  accounts             Account[]
+  sessions             Session[]
+  items                Item[]
+  itemTypes            ItemType[]
+  collections          Collection[]
+  tags                 Tag[]
+
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+}
+
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([provider, providerAccountId])
+}
+
+model Session {
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@id([identifier, token])
+}
+
+// ─── Core domain ───────────────────────────────────────
+model Item {
+  id          String           @id @default(cuid())
+  title       String
+  contentType ContentType      @default(TEXT)
+  content     String? // text content (null for file/url)
+  fileUrl     String? // Cloudflare R2 URL
+  fileName    String? // original filename
+  fileSize    Int? // bytes
+  url         String? // for link types
+  description String?
+  language    String? // optional, for code snippets
+  isFavorite  Boolean          @default(false)
+  isPinned    Boolean          @default(false)
+
+  userId      String
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  itemTypeId  String
+  itemType    ItemType         @relation(fields: [itemTypeId], references: [id])
+
+  tags        Tag[]
+  collections ItemCollection[]
+
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([userId])
+  @@index([itemTypeId])
+}
+
+model ItemType {
+  id       String  @id @default(cuid())
+  name     String
+  icon     String // Lucide icon name
+  color    String // hex, e.g. "#3b82f6"
+  isSystem Boolean @default(false)
+
+  userId   String? // null for system types
+  user     User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  items                 Item[]
+  defaultForCollections Collection[] @relation("CollectionDefaultType")
+
+  @@index([userId])
+}
+
+model Collection {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+  isFavorite  Boolean @default(false)
+
+  defaultTypeId String?
+  defaultType   ItemType? @relation("CollectionDefaultType", fields: [defaultTypeId], references: [id])
+
+  userId      String
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  items       ItemCollection[]
+
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([userId])
+}
+
+// Join table: items <-> collections (many-to-many)
+model ItemCollection {
+  itemId       String
+  item         Item       @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  collectionId String
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  addedAt      DateTime   @default(now())
+
+  @@id([itemId, collectionId])
+  @@index([collectionId])
+}
+
+model Tag {
+  id     String  @id @default(cuid())
+  name   String
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items  Item[]
+
+  @@unique([name, userId]) // tags scoped per user
+}
