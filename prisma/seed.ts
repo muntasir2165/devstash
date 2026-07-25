@@ -36,11 +36,13 @@ type SeedItem = {
 const COLLECTIONS: {
   name: string;
   description: string;
+  isFavorite?: boolean;
   items: SeedItem[];
 }[] = [
   {
     name: "React Patterns",
     description: "Reusable React patterns and hooks",
+    isFavorite: true,
     items: [
       {
         type: "snippet",
@@ -183,6 +185,7 @@ CMD ["npm", "start"]`,
   {
     name: "Terminal Commands",
     description: "Useful shell commands for everyday development",
+    isFavorite: true,
     items: [
       {
         type: "command",
@@ -287,6 +290,7 @@ async function main() {
       data: {
         name: collection.name,
         description: collection.description,
+        isFavorite: collection.isFavorite ?? false,
         userId: user.id,
         items: {
           create: collection.items.map((it) => ({

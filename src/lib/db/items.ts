@@ -78,3 +78,66 @@ export async function getItemStats(): Promise<{
 
   return { total, favorites };
 }
+
+/** A system item type shaped for the sidebar Types list. */
+export interface SidebarItemType {
+  id: string;
+  /** Raw type name from the database, e.g. "snippet". */
+  name: string;
+  /** URL segment for /items/[typename]. */
+  slug: string;
+  /** Lucide icon name. */
+  icon: string;
+  /** Hex color, e.g. "#3b82f6". */
+  color: string;
+  /** Number of items of this type. */
+  count: number;
+}
+
+/** Canonical display order for the system item types in the sidebar. */
+const SIDEBAR_TYPE_ORDER = [
+  "snippet",
+  "prompt",
+  "command",
+  "note",
+  "file",
+  "image",
+  "link",
+];
+
+/**
+ * Fetch the system item types for the sidebar, each with its item count.
+ *
+ * Ordered by the canonical `SIDEBAR_TYPE_ORDER`, with any unlisted types
+ * falling back to the end alphabetically.
+ */
+export async function getSidebarItemTypes(): Promise<SidebarItemType[]> {
+  const types = await prisma.itemType.findMany({
+    where: { isSystem: true },
+    select: {
+      id: true,
+      name: true,
+      icon: true,
+      color: true,
+      _count: { select: { items: true } },
+    },
+  });
+
+  const orderOf = (name: string) => {
+    const index = SIDEBAR_TYPE_ORDER.indexOf(name.toLowerCase());
+    return index === -1 ? SIDEBAR_TYPE_ORDER.length : index;
+  };
+
+  return types
+    .map((type) => ({
+      id: type.id,
+      name: type.name,
+      slug: type.name.toLowerCase(),
+      icon: type.icon,
+      color: type.color,
+      count: type._count.items,
+    }))
+    .sort(
+      (a, b) => orderOf(a.name) - orderOf(b.name) || a.name.localeCompare(b.name),
+    );
+}

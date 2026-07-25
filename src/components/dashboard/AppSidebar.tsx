@@ -35,7 +35,9 @@ import {
   SidebarMenuItem,
   SidebarSeparator,
 } from "@/components/ui/sidebar";
-import { collections, currentUser, itemTypes } from "@/lib/mock-data";
+import { getSidebarCollections } from "@/lib/db/collections";
+import { getSidebarItemTypes } from "@/lib/db/items";
+import { currentUser } from "@/lib/mock-data";
 
 type IconComponent = ComponentType<{
   className?: string;
@@ -62,13 +64,11 @@ function getInitials(name: string) {
     .toUpperCase();
 }
 
-export function AppSidebar() {
-  const favoriteCollections = collections.filter(
-    (collection) => collection.isFavorite,
-  );
-  const otherCollections = collections.filter(
-    (collection) => !collection.isFavorite,
-  );
+export async function AppSidebar() {
+  const [itemTypes, { favorites, recents }] = await Promise.all([
+    getSidebarItemTypes(),
+    getSidebarCollections(),
+  ]);
 
   return (
     <Sidebar collapsible="offcanvas">
@@ -102,7 +102,7 @@ export function AppSidebar() {
                           render={<Link href={`/items/${type.slug}`} />}
                         >
                           <Icon style={{ color: type.color }} />
-                          <span>{type.name}</span>
+                          <span className="capitalize">{type.name}</span>
                         </SidebarMenuButton>
                         <SidebarMenuBadge>{type.count}</SidebarMenuBadge>
                       </SidebarMenuItem>
@@ -127,40 +127,73 @@ export function AppSidebar() {
             </SidebarGroupLabel>
             <CollapsibleContent>
               <SidebarGroupContent className="space-y-1">
-                <p className="px-2 pt-1 text-[0.7rem] font-medium tracking-wide text-sidebar-foreground/50 uppercase">
-                  Favorites
-                </p>
-                <SidebarMenu>
-                  {favoriteCollections.map((collection) => (
-                    <SidebarMenuItem key={collection.id}>
-                      <SidebarMenuButton
-                        render={<Link href={`/collections/${collection.id}`} />}
-                      >
-                        <Folder />
-                        <span>{collection.name}</span>
-                      </SidebarMenuButton>
-                      <SidebarMenuBadge>
-                        <Star className="size-3.5 fill-yellow-400 text-yellow-400" />
-                      </SidebarMenuBadge>
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
+                {favorites.length > 0 && (
+                  <>
+                    <p className="px-2 pt-1 text-[0.7rem] font-medium tracking-wide text-sidebar-foreground/50 uppercase">
+                      Favorites
+                    </p>
+                    <SidebarMenu>
+                      {favorites.map((collection) => (
+                        <SidebarMenuItem key={collection.id}>
+                          <SidebarMenuButton
+                            render={
+                              <Link href={`/collections/${collection.id}`} />
+                            }
+                          >
+                            <Folder />
+                            <span>{collection.name}</span>
+                          </SidebarMenuButton>
+                          <SidebarMenuBadge>
+                            <Star className="size-3.5 fill-yellow-400 text-yellow-400" />
+                          </SidebarMenuBadge>
+                        </SidebarMenuItem>
+                      ))}
+                    </SidebarMenu>
+                  </>
+                )}
 
-                <p className="px-2 pt-2 text-[0.7rem] font-medium tracking-wide text-sidebar-foreground/50 uppercase">
-                  All Collections
-                </p>
+                {recents.length > 0 && (
+                  <>
+                    <p className="px-2 pt-2 text-[0.7rem] font-medium tracking-wide text-sidebar-foreground/50 uppercase">
+                      Recent
+                    </p>
+                    <SidebarMenu>
+                      {recents.map((collection) => (
+                        <SidebarMenuItem key={collection.id}>
+                          <SidebarMenuButton
+                            render={
+                              <Link href={`/collections/${collection.id}`} />
+                            }
+                          >
+                            <Folder />
+                            <span>{collection.name}</span>
+                          </SidebarMenuButton>
+                          <SidebarMenuBadge>
+                            <span
+                              aria-hidden
+                              className="size-2.5 rounded-full bg-sidebar-foreground/30"
+                              style={
+                                collection.color
+                                  ? { backgroundColor: collection.color }
+                                  : undefined
+                              }
+                            />
+                          </SidebarMenuBadge>
+                        </SidebarMenuItem>
+                      ))}
+                    </SidebarMenu>
+                  </>
+                )}
+
                 <SidebarMenu>
-                  {otherCollections.map((collection) => (
-                    <SidebarMenuItem key={collection.id}>
-                      <SidebarMenuButton
-                        render={<Link href={`/collections/${collection.id}`} />}
-                      >
-                        <Folder />
-                        <span>{collection.name}</span>
-                      </SidebarMenuButton>
-                      <SidebarMenuBadge>{collection.itemCount}</SidebarMenuBadge>
-                    </SidebarMenuItem>
-                  ))}
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      className="text-sidebar-foreground/70"
+                      render={<Link href="/collections" />}
+                    >
+                      <span>View all collections</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
                 </SidebarMenu>
               </SidebarGroupContent>
             </CollapsibleContent>

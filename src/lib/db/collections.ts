@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@/generated/prisma/client";
 
 /** A distinct item type present in a collection, resolved for display. */
 export interface CollectionType {
@@ -88,4 +89,92 @@ export async function getCollectionStats(): Promise<{
   ]);
 
   return { total, favorites };
+}
+
+/** A collection shaped for the sidebar Collections list. */
+export interface SidebarCollection {
+  id: string;
+  name: string;
+  isFavorite: boolean;
+  /** Hex color of the most-used item type, or null when the collection is empty. */
+  color: string | null;
+}
+
+/** Just enough of each collection to resolve its dominant type color. */
+const sidebarCollectionInclude = {
+  items: {
+    include: {
+      item: { select: { itemType: { select: { id: true, color: true } } } },
+    },
+  },
+} satisfies Prisma.CollectionInclude;
+
+type SidebarCollectionRow = Prisma.CollectionGetPayload<{
+  include: typeof sidebarCollectionInclude;
+}>;
+
+/** The hex color of the most-used item type in a collection, or null when empty. */
+function dominantTypeColor(items: SidebarCollectionRow["items"]): string | null {
+  const counts = new Map<string, { color: string; count: number }>();
+
+  for (const { item } of items) {
+    const { id, color } = item.itemType;
+    const existing = counts.get(id);
+    if (existing) {
+      existing.count += 1;
+    } else {
+      counts.set(id, { color, count: 1 });
+    }
+  }
+
+  let dominant: string | null = null;
+  let max = 0;
+  for (const { color, count } of counts.values()) {
+    if (count > max) {
+      max = count;
+      dominant = color;
+    }
+  }
+
+  return dominant;
+}
+
+function toSidebarCollection(collection: SidebarCollectionRow): SidebarCollection {
+  return {
+    id: collection.id,
+    name: collection.name,
+    isFavorite: collection.isFavorite,
+    color: dominantTypeColor(collection.items),
+  };
+}
+
+/**
+ * Fetch collections for the sidebar, split into favorites and recents.
+ *
+ * Favorites are rendered with a star; recents (the most recently updated
+ * non-favorite collections) are rendered with a colored circle drawn from the
+ * collection's most-used item type.
+ */
+export async function getSidebarCollections(recentLimit = 5): Promise<{
+  favorites: SidebarCollection[];
+  recents: SidebarCollection[];
+}> {
+  const [favorites, recents] = await Promise.all([
+    prisma.collection.findMany({
+      where: { isFavorite: true },
+      orderBy: { updatedAt: "desc" },
+      include: sidebarCollectionInclude,
+    }),
+    prisma.collection.findMany({
+      where: { isFavorite: false },
+      orderBy: { updatedAt: "desc" },
+      take: recentLimit,
+      include: sidebarCollectionInclude,
+    }),
+  ]);
+
+  return {
+    favorites: favorites.map(toSidebarCollection),
+    recents: recents.map(toSidebarCollection),
+  };
 }
