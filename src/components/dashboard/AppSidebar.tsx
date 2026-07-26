@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import {
   Collapsible,
   CollapsibleContent,
@@ -53,6 +54,9 @@ const ICON_MAP: Record<string, IconComponent> = {
   Image: ImageIcon,
   Link: LinkIcon,
 };
+
+/** Item type slugs that display a "PRO" badge in the sidebar. */
+const PRO_TYPE_SLUGS = new Set(["file", "image"]);
 
 function getInitials(name: string) {
   return name
@@ -96,6 +100,7 @@ export async function AppSidebar() {
                 <SidebarMenu>
                   {itemTypes.map((type) => {
                     const Icon = ICON_MAP[type.icon] ?? FileIcon;
+                    const isPro = PRO_TYPE_SLUGS.has(type.slug);
                     return (
                       <SidebarMenuItem key={type.id}>
                         <SidebarMenuButton
@@ -103,6 +108,14 @@ export async function AppSidebar() {
                         >
                           <Icon style={{ color: type.color }} />
                           <span className="capitalize">{type.name}</span>
+                          {isPro && (
+                            <Badge
+                              variant="secondary"
+                              className="h-4 px-1.5 text-[0.625rem] font-semibold tracking-wide"
+                            >
+                              PRO
+                            </Badge>
+                          )}
                         </SidebarMenuButton>
                         <SidebarMenuBadge>{type.count}</SidebarMenuBadge>
                       </SidebarMenuItem>
