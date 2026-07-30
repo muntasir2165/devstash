@@ -1,22 +1,27 @@
-# Current Feature
+# Current Feature: Quick-Win Cleanups (code-scanner low-risk fixes)
 
-<!-- One or two sentences describing the feature currently being worked on. -->
+Apply the little/no-risk quick wins surfaced by the code-scanner audit (2026-07-30).
 
 ## Status
 
-Not started
+In Progress
 
 ## Goals
 
-<!-- What this feature needs to accomplish. Replace with concrete goals. -->
-
--
+- Bound `getPinnedItems()` in `src/lib/db/items.ts` with a `take` (default 50) so the query is no longer unbounded.
+- Fix the tag React `key` in `src/components/dashboard/ItemCard.tsx` (use `` `${tag}-${index}` ``) to avoid duplicate-key warnings.
+- Use a stable `key` for the cards in `src/components/dashboard/StatsCards.tsx` instead of the label string.
 
 ## Notes
 
-<!-- Scope, references, constraints, and anything worth remembering. -->
-
--
+- Source: code-scanner audit (2026-07-30). Scope is deliberately limited to low-risk, minimal-diff changes.
+- Deferred (out of scope — more effort/risk):
+  - **Root route (`src/app/page.tsx`) redirect to `/dashboard` — excluded by request.**
+  - DB-layer error-handling pass across `src/lib/db/*`.
+  - `src/lib/prisma.ts` startup-throw (intended fail-fast).
+  - `src/components/ui/sidebar.tsx` cookie guard + file split (vendored shadcn primitive — avoid hand-edits).
+- `npm run build` and `npm run lint` must pass; verify the dashboard still renders.
+- No Prisma schema changes in scope → no migration needed. If scope grows to touch `schema.prisma`, use `prisma migrate dev` (never `db push`) and `prisma migrate deploy` to keep the Neon dev/prod branches in sync.
 
 ## History
 

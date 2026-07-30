@@ -46,9 +46,9 @@ export function ItemCard({ item }: { item: ItemSummary }) {
 
         {item.tags.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1.5">
-            {item.tags.map((tag) => (
+            {item.tags.map((tag, index) => (
               <span
-                key={tag}
+                key={`${tag}-${index}`}
                 className="rounded-md bg-secondary px-2 py-0.5 text-xs text-secondary-foreground"
               >
                 {tag}
