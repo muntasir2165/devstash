@@ -34,8 +34,8 @@ export async function StatsCards() {
 
   return (
     <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-      {stats.map(({ label, value, icon: Icon }) => (
-        <div key={label} className="rounded-xl border bg-card p-4">
+      {stats.map(({ label, value, icon: Icon }, index) => (
+        <div key={index} className="rounded-xl border bg-card p-4">
           <div className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground">{label}</span>
             <Icon className="size-4 text-muted-foreground" />

@@ -44,11 +44,12 @@ function toItemSummary(item: ItemCardRow): ItemSummary {
   };
 }
 
-/** Fetch all pinned items for the dashboard, most recently created first. */
-export async function getPinnedItems(): Promise<ItemSummary[]> {
+/** Fetch pinned items for the dashboard, most recently created first. */
+export async function getPinnedItems(limit = 50): Promise<ItemSummary[]> {
   const items = await prisma.item.findMany({
     where: { isPinned: true },
     orderBy: { createdAt: "desc" },
+    take: limit,
     select: itemCardSelect,
   });
 
