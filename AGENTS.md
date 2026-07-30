@@ -23,3 +23,12 @@ Read the following to get the full context of the project:
 - **Build**: `npm run build`
 - **Production server**: `npm run start`
 - **Lint**: `npm run lint`
+
+## Neon MCP / Database
+
+When using the Neon MCP server, ALWAYS:
+
+- Use the **`devstash`** project — `projectId: jolly-mud-67427347`.
+- Target the **`development`** branch by default — `branchId: br-quiet-union-aya5ctl7`. Pass this `branchId` on every query/`run_sql` call.
+- **Never touch the `production` branch** (`br-super-rain-ayowhf3b`) — no reads and no writes — unless I explicitly say "production" in that request.
+- Never run destructive SQL (`DROP`, `DELETE`, `TRUNCATE`, `UPDATE`/`INSERT` without a `WHERE`, or schema changes) autonomously; ask first, and prefer a disposable temporary branch for experiments.
