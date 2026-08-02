@@ -1,29 +1,22 @@
-# Current Feature: Auth Phase 3 — Auth UI (Sign In, Register, Sign Out)
+# Current Feature
 
-Replace NextAuth's default pages with custom `/sign-in` and `/register` UI, and wire the sidebar footer to the real signed-in user (avatar, name, sign-out).
+<!-- One or two sentences describing the feature currently being worked on. -->
 
 ## Status
 
-In Progress
+Not started
 
 ## Goals
 
-- Custom **`/sign-in`** page: email + password fields, "Sign in with GitHub" button, link to `/register`, form validation + error display.
-- Custom **`/register`** page: name/email/password/confirmPassword fields, validation (passwords match, email format), submit to `POST /api/auth/register`, redirect to sign-in on success.
-- Point Auth.js at the custom page: set `pages: { signIn: "/sign-in" }` and update `src/proxy.ts` to redirect unauthenticated users to `/sign-in` (replacing the default `/api/auth/signin`).
-- Sidebar footer on the **real session user**: avatar (GitHub `image` or initials fallback), user name; click opens a dropdown with **Sign out**; clicking the avatar/icon navigates to `/profile`.
-- Extract a **reusable avatar component** (image-or-initials).
+<!-- What this feature needs to accomplish. Replace with concrete goals. -->
+
+-
 
 ## Notes
 
-- Phases 1–2 deliberately used NextAuth's default sign-in page; Phase 3 introduces custom pages → now set `pages.signIn` and repoint the proxy redirect.
-- Sidebar footer currently uses mock `currentUser` (`@/lib/mock-data`) — replace with the real user via `auth()` (server component). Avatar: use `image` if present, else initials from name (e.g. "Brad Traversy" → "BT"). shadcn `avatar` is installed; `AppSidebar` already has a `getInitials` helper to extract.
-- Forms, the avatar dropdown, and sign-out need `'use client'`; fetch the session server-side where possible. Sign out via `signOut()` from `@/auth`.
-- **Verify current Auth.js v5 custom-pages + `signIn`/`signOut` conventions via Context7 before writing.**
-- No schema change → no migration.
-- `/profile` is a link target only (no profile page required this phase unless specified).
-- Testing: `/sign-in` renders; GitHub + email/password flows work; avatar shows image or initials; dropdown opens; Sign out logs out + redirects; `/register` creates an account → redirect to sign-in.
-- Spec: `context/features/auth-phase-3-spec.md`.
+<!-- Scope, references, constraints, and anything worth remembering. -->
+
+-
 
 ## History
 
@@ -42,3 +35,4 @@ In Progress
 - **2026-07-30 — Quick-Win Cleanups (code-scanner low-risk fixes).** On branch `feature/quick-win-cleanups`. Applied three low-risk fixes surfaced by the code-scanner audit: bounded `getPinnedItems()` in `src/lib/db/items.ts` with a `take` (default 50) so it is no longer an unbounded `findMany`; gave the tag pills in `src/components/dashboard/ItemCard.tsx` a unique React key (`` `${tag}-${index}` ``); and switched `src/components/dashboard/StatsCards.tsx` from a label-string key to the array index. No schema change → no migration. `npm run build` and `npm run lint` pass; verified in the browser (dashboard renders; stats 18/5/0/2; 10 recent items). Deferred by choice: root `/` → `/dashboard` redirect (excluded by request), DB-layer error handling, `prisma.ts` startup-throw, and the `sidebar.tsx` cookie guard/split.
 - **2026-08-02 — Auth Phase 1 (NextAuth v5 + GitHub).** On branch `feature/auth-setup`. Set up Auth.js v5 (`next-auth@beta`) with `@auth/prisma-adapter` and GitHub OAuth via the edge-safe split-config pattern (verified current v5 conventions through Context7). Added `src/auth.config.ts` (providers-only; GitHub auto-reads `AUTH_GITHUB_*`), `src/auth.ts` (`PrismaAdapter(prisma)` on the `@/lib/prisma` singleton + `session.strategy='jwt'` + `jwt`/`session` callbacks exposing `user.id`; exports `handlers/auth/signIn/signOut`), `src/app/api/auth/[...nextauth]/route.ts` (`export const {GET,POST}=handlers`), `src/proxy.ts` (Next.js 16 renamed middleware→proxy; named `export const proxy = auth(...)` built from the adapter-free config, `matcher:['/dashboard/:path*']`, redirects unauthenticated users to the default `/api/auth/signin`), and `src/types/next-auth.d.ts` (augments `Session.user.id` + `JWT.id`). Documented `AUTH_SECRET`/`AUTH_GITHUB_ID`/`AUTH_GITHUB_SECRET` in `.env.example`. No schema change → no migration (existing User/Account/Session/VerificationToken match the adapter). `npm run build` and `npm run lint` pass; verified in the browser (`/dashboard` → default NextAuth sign-in with GitHub button). Follow-up (user): create a GitHub OAuth app and add `AUTH_GITHUB_ID/SECRET` to `.env` to complete the login flow. Phase 2–3 specs staged in `context/features/`.
 - **2026-08-02 — Auth Phase 2 (Credentials email/password).** On branch `feature/auth-credentials`. Added a Credentials (email/password) provider alongside GitHub via the edge-safe split pattern (verified v5 conventions through Context7). `src/auth.config.ts` gained an edge-safe Credentials PLACEHOLDER (`authorize: () => null`, email/password fields, no bcrypt); `src/auth.ts` redefines `providers` after the spread to override it with the real `bcryptjs` `authorize` (normalizes email, looks up `User.hashedPassword`, returns null for missing/GitHub-only accounts, `bcrypt.compare`, returns a minimal user). Added `POST /api/auth/register` (`src/app/api/auth/register/route.ts`): validates name/email/password/confirmPassword, 409 on existing email, hashes with bcryptjs (12 rounds, matches seed), creates the user, returns 201 (hash never returned). No schema change → no migration (`hashedPassword` already existed). `npm run build` and `npm run lint` pass; verified end-to-end (register 201/409; credentials sign-in CSRF→callback 302→session includes `user.id`; sign-in page shows GitHub + email/password). Created a `test@test.com` / `password123` user in the Neon dev branch during testing. Phase 3 spec remains in `context/features/`.
+- **2026-08-02 — Auth Phase 3 (custom auth UI).** On branch `feature/auth-ui`. Replaced NextAuth's default pages with custom UI and wired the sidebar to the real session (verified v5 custom-page conventions via Context7). Set `pages.signIn: "/sign-in"` in the edge-safe `auth.config.ts` and repointed `src/proxy.ts`'s redirect to `/sign-in`. Added `src/lib/auth-actions.ts` (server actions: `credentialsSignIn` using `useActionState`, catching `AuthError` and re-throwing the NEXT_REDIRECT so the success redirect survives; `githubSignIn`; `signOutAction`), custom `/sign-in` (`src/app/sign-in/page.tsx` + client `SignInForm`) with a GitHub server-action button + email/password + link to register, custom `/register` (`src/app/register/page.tsx` + client `RegisterForm` that POSTs to `/api/auth/register` then redirects to sign-in), a reusable `UserAvatar` (image-or-initials), and a `SidebarUser` client dropdown (Profile → `/profile`, Sign out) backed by a newly installed shadcn `dropdown-menu`. Rewired `AppSidebar` to fetch the real user via `auth()` (removing mock `currentUser`/`getInitials`). No schema change → no migration. `npm run build` (routes `/sign-in` + `/register` prerendered) and `npm run lint` pass; `/sign-in` renders in the browser. Full in-browser login click-through was blocked by a Playwright submit-button stability quirk (button `active:translate-y-px`) plus stale dev-server HMR on the new client components — both non-code; underlying credentials auth already verified in Phase 2. Left an unrelated `next.config.ts` `devIndicators:false` tweak uncommitted.
