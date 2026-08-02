@@ -1,29 +1,22 @@
-# Current Feature: Auth Setup — NextAuth v5 + GitHub Provider
+# Current Feature
 
-Set up NextAuth (Auth.js) v5 with the Prisma adapter and GitHub OAuth, protecting `/dashboard/*` and using NextAuth's default sign-in page (Phase 1).
+<!-- One or two sentences describing the feature currently being worked on. -->
 
 ## Status
 
-In Progress
+Not started
 
 ## Goals
 
-- Install `next-auth@beta` (v5) and `@auth/prisma-adapter`.
-- Split config for edge compatibility: `src/auth.config.ts` (providers only, no adapter) + `src/auth.ts` (Prisma adapter + `session: { strategy: 'jwt' }`).
-- Add the GitHub OAuth provider.
-- Add the route handler `src/app/api/auth/[...nextauth]/route.ts` exporting handlers from `auth.ts`.
-- Protect `/dashboard/*` via `src/proxy.ts` (named `export const proxy = auth(...)`), redirecting unauthenticated users to sign-in.
-- Extend the `Session` type with `user.id` in `src/types/next-auth.d.ts`.
-- Use NextAuth's default sign-in page (do NOT set a custom `pages.signIn`).
+<!-- What this feature needs to accomplish. Replace with concrete goals. -->
+
+-
 
 ## Notes
 
-- **Verify current Auth.js v5 config/conventions via Context7 before writing** (APIs shift fast on the beta).
-- Gotchas: use `next-auth@beta` (not `@latest` = v4); `proxy.ts` sits at `src/proxy.ts` (sibling of `app/`); named export `export const proxy = auth(...)` (not default); JWT session strategy with the split-config pattern.
-- Env vars: `AUTH_SECRET`, `AUTH_GITHUB_ID`, `AUTH_GITHUB_SECRET` (`AUTH_SECRET` already generated via `npx auth secret`). Never read/echo `.env`.
-- Prisma adapter uses the existing `User`/`Account`/`Session`/`VerificationToken` models (already in the schema). Confirm no schema change is needed; if one is, use `prisma migrate dev` on the Neon dev branch (never `db push`), per AGENTS.md.
-- Testing: `/dashboard` → redirects to sign-in → "Sign in with GitHub" → back to `/dashboard`.
-- Spec: `context/features/auth-phase-1-spec.md`. Refs: authjs.dev edge-compatibility + Prisma adapter guides.
+<!-- Scope, references, constraints, and anything worth remembering. -->
+
+-
 
 ## History
 
@@ -40,3 +33,4 @@ In Progress
 - **2026-07-25 — Stats & Sidebar (real data).** On branch `feature/stats-sidebar`. Replaced the remaining mock data in the sidebar with live Neon/Prisma data (main-area stats were already DB-driven from the previous phase). Added `getSidebarItemTypes()` to `src/lib/db/items.ts` (all system item types with per-type item counts, ordered by a fixed canonical sequence — Snippets, Prompts, Commands, Notes, Files, Images, Links — via `SIDEBAR_TYPE_ORDER`; exposes a lowercase `slug`) and `getSidebarCollections()` to `src/lib/db/collections.ts` (favorites + the most recent non-favorite collections, each resolving its most-used item type's color via a shared `dominantTypeColor` helper). Made `AppSidebar` an async server component: Types render from the DB with colored icons, counts, and `/items/[typename]` links; Collections split into Favorites (star) and Recent (colored circle from the dominant type) with a "View all collections" link to `/collections`. Kept the user footer on mock `currentUser` (out of scope). Marked React Patterns and Terminal Commands as favorites in `prisma/seed.ts` (added an `isFavorite` flag) and re-seeded so the Favorites group renders. `npm run build` and `npm run lint` pass; verified in the browser (Types in canonical order with real counts; Favorites show React Patterns + Terminal Commands with stars; recents show the other three with correct type colors; stats 18/5/0/2).
 - **2026-07-26 — Sidebar PRO badge.** On branch `feature/add-pro-badge-sidebar`. Added a subtle "PRO" badge to the File and Image item types in the sidebar Types list. Installed the shadcn `badge` component (Base UI, `src/components/ui/badge.tsx`) via the CLI, imported it into `AppSidebar`, and added a `PRO_TYPE_SLUGS` set (`file`, `image`) so each matching type renders an uppercase `secondary`-variant `Badge` (`h-4`, `text-[0.625rem]`, pill) inline after the type name, leaving the right-aligned count `SidebarMenuBadge` untouched. Matched on the type `slug` (robust to display capitalization); no other types affected. `npm run build` and `npm run lint` pass; verified in the browser (File and Image show PRO, others don't; counts intact).
 - **2026-07-30 — Quick-Win Cleanups (code-scanner low-risk fixes).** On branch `feature/quick-win-cleanups`. Applied three low-risk fixes surfaced by the code-scanner audit: bounded `getPinnedItems()` in `src/lib/db/items.ts` with a `take` (default 50) so it is no longer an unbounded `findMany`; gave the tag pills in `src/components/dashboard/ItemCard.tsx` a unique React key (`` `${tag}-${index}` ``); and switched `src/components/dashboard/StatsCards.tsx` from a label-string key to the array index. No schema change → no migration. `npm run build` and `npm run lint` pass; verified in the browser (dashboard renders; stats 18/5/0/2; 10 recent items). Deferred by choice: root `/` → `/dashboard` redirect (excluded by request), DB-layer error handling, `prisma.ts` startup-throw, and the `sidebar.tsx` cookie guard/split.
+- **2026-08-02 — Auth Phase 1 (NextAuth v5 + GitHub).** On branch `feature/auth-setup`. Set up Auth.js v5 (`next-auth@beta`) with `@auth/prisma-adapter` and GitHub OAuth via the edge-safe split-config pattern (verified current v5 conventions through Context7). Added `src/auth.config.ts` (providers-only; GitHub auto-reads `AUTH_GITHUB_*`), `src/auth.ts` (`PrismaAdapter(prisma)` on the `@/lib/prisma` singleton + `session.strategy='jwt'` + `jwt`/`session` callbacks exposing `user.id`; exports `handlers/auth/signIn/signOut`), `src/app/api/auth/[...nextauth]/route.ts` (`export const {GET,POST}=handlers`), `src/proxy.ts` (Next.js 16 renamed middleware→proxy; named `export const proxy = auth(...)` built from the adapter-free config, `matcher:['/dashboard/:path*']`, redirects unauthenticated users to the default `/api/auth/signin`), and `src/types/next-auth.d.ts` (augments `Session.user.id` + `JWT.id`). Documented `AUTH_SECRET`/`AUTH_GITHUB_ID`/`AUTH_GITHUB_SECRET` in `.env.example`. No schema change → no migration (existing User/Account/Session/VerificationToken match the adapter). `npm run build` and `npm run lint` pass; verified in the browser (`/dashboard` → default NextAuth sign-in with GitHub button). Follow-up (user): create a GitHub OAuth app and add `AUTH_GITHUB_ID/SECRET` to `.env` to complete the login flow. Phase 2–3 specs staged in `context/features/`.
