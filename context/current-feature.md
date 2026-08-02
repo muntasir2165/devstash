@@ -1,26 +1,22 @@
-# Current Feature: Auth Phase 2 — Credentials (Email/Password) Provider
+# Current Feature
 
-Add a Credentials provider for email/password auth (with bcryptjs) plus a registration API route, alongside the existing GitHub OAuth.
+<!-- One or two sentences describing the feature currently being worked on. -->
 
 ## Status
 
-In Progress
+Not started
 
 ## Goals
 
-- Add a Credentials provider to `src/auth.config.ts` as an edge-safe placeholder (`authorize: () => null`, no bcrypt).
-- Override the Credentials provider in `src/auth.ts` with real bcryptjs validation against `User.hashedPassword`.
-- Create `POST /api/auth/register`: accept name/email/password/confirmPassword, validate passwords match, reject if the user exists, hash with bcryptjs, create the user, return a success/error response.
-- Keep GitHub OAuth working.
+<!-- What this feature needs to accomplish. Replace with concrete goals. -->
+
+-
 
 ## Notes
 
-- **Verify current Auth.js v5 Credentials-provider conventions via Context7 before writing** (split-pattern override + `authorize` signature).
-- `bcryptjs` is already installed; `User.hashedPassword` already exists (migration `20260724034852_add_user_password`) → **no new migration needed**.
-- Edge-safety: bcrypt is Node-only — it must live in `auth.ts`, never in `auth.config.ts` (the proxy imports the config).
-- Credentials requires the JWT session strategy (already set in Phase 1).
-- Testing: `curl POST /api/auth/register` → then `/api/auth/signin` with email/password → redirect to `/dashboard`; confirm GitHub OAuth still works.
-- Spec: `context/features/auth-phase-2-spec.md`. Ref: authjs.dev Credentials guide.
+<!-- Scope, references, constraints, and anything worth remembering. -->
+
+-
 
 ## History
 
@@ -38,3 +34,4 @@ In Progress
 - **2026-07-26 — Sidebar PRO badge.** On branch `feature/add-pro-badge-sidebar`. Added a subtle "PRO" badge to the File and Image item types in the sidebar Types list. Installed the shadcn `badge` component (Base UI, `src/components/ui/badge.tsx`) via the CLI, imported it into `AppSidebar`, and added a `PRO_TYPE_SLUGS` set (`file`, `image`) so each matching type renders an uppercase `secondary`-variant `Badge` (`h-4`, `text-[0.625rem]`, pill) inline after the type name, leaving the right-aligned count `SidebarMenuBadge` untouched. Matched on the type `slug` (robust to display capitalization); no other types affected. `npm run build` and `npm run lint` pass; verified in the browser (File and Image show PRO, others don't; counts intact).
 - **2026-07-30 — Quick-Win Cleanups (code-scanner low-risk fixes).** On branch `feature/quick-win-cleanups`. Applied three low-risk fixes surfaced by the code-scanner audit: bounded `getPinnedItems()` in `src/lib/db/items.ts` with a `take` (default 50) so it is no longer an unbounded `findMany`; gave the tag pills in `src/components/dashboard/ItemCard.tsx` a unique React key (`` `${tag}-${index}` ``); and switched `src/components/dashboard/StatsCards.tsx` from a label-string key to the array index. No schema change → no migration. `npm run build` and `npm run lint` pass; verified in the browser (dashboard renders; stats 18/5/0/2; 10 recent items). Deferred by choice: root `/` → `/dashboard` redirect (excluded by request), DB-layer error handling, `prisma.ts` startup-throw, and the `sidebar.tsx` cookie guard/split.
 - **2026-08-02 — Auth Phase 1 (NextAuth v5 + GitHub).** On branch `feature/auth-setup`. Set up Auth.js v5 (`next-auth@beta`) with `@auth/prisma-adapter` and GitHub OAuth via the edge-safe split-config pattern (verified current v5 conventions through Context7). Added `src/auth.config.ts` (providers-only; GitHub auto-reads `AUTH_GITHUB_*`), `src/auth.ts` (`PrismaAdapter(prisma)` on the `@/lib/prisma` singleton + `session.strategy='jwt'` + `jwt`/`session` callbacks exposing `user.id`; exports `handlers/auth/signIn/signOut`), `src/app/api/auth/[...nextauth]/route.ts` (`export const {GET,POST}=handlers`), `src/proxy.ts` (Next.js 16 renamed middleware→proxy; named `export const proxy = auth(...)` built from the adapter-free config, `matcher:['/dashboard/:path*']`, redirects unauthenticated users to the default `/api/auth/signin`), and `src/types/next-auth.d.ts` (augments `Session.user.id` + `JWT.id`). Documented `AUTH_SECRET`/`AUTH_GITHUB_ID`/`AUTH_GITHUB_SECRET` in `.env.example`. No schema change → no migration (existing User/Account/Session/VerificationToken match the adapter). `npm run build` and `npm run lint` pass; verified in the browser (`/dashboard` → default NextAuth sign-in with GitHub button). Follow-up (user): create a GitHub OAuth app and add `AUTH_GITHUB_ID/SECRET` to `.env` to complete the login flow. Phase 2–3 specs staged in `context/features/`.
+- **2026-08-02 — Auth Phase 2 (Credentials email/password).** On branch `feature/auth-credentials`. Added a Credentials (email/password) provider alongside GitHub via the edge-safe split pattern (verified v5 conventions through Context7). `src/auth.config.ts` gained an edge-safe Credentials PLACEHOLDER (`authorize: () => null`, email/password fields, no bcrypt); `src/auth.ts` redefines `providers` after the spread to override it with the real `bcryptjs` `authorize` (normalizes email, looks up `User.hashedPassword`, returns null for missing/GitHub-only accounts, `bcrypt.compare`, returns a minimal user). Added `POST /api/auth/register` (`src/app/api/auth/register/route.ts`): validates name/email/password/confirmPassword, 409 on existing email, hashes with bcryptjs (12 rounds, matches seed), creates the user, returns 201 (hash never returned). No schema change → no migration (`hashedPassword` already existed). `npm run build` and `npm run lint` pass; verified end-to-end (register 201/409; credentials sign-in CSRF→callback 302→session includes `user.id`; sign-in page shows GitHub + email/password). Created a `test@test.com` / `password123` user in the Neon dev branch during testing. Phase 3 spec remains in `context/features/`.
