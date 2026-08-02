@@ -1,22 +1,26 @@
-# Current Feature
+# Current Feature: Auth Phase 2 — Credentials (Email/Password) Provider
 
-<!-- One or two sentences describing the feature currently being worked on. -->
+Add a Credentials provider for email/password auth (with bcryptjs) plus a registration API route, alongside the existing GitHub OAuth.
 
 ## Status
 
-Not started
+In Progress
 
 ## Goals
 
-<!-- What this feature needs to accomplish. Replace with concrete goals. -->
-
--
+- Add a Credentials provider to `src/auth.config.ts` as an edge-safe placeholder (`authorize: () => null`, no bcrypt).
+- Override the Credentials provider in `src/auth.ts` with real bcryptjs validation against `User.hashedPassword`.
+- Create `POST /api/auth/register`: accept name/email/password/confirmPassword, validate passwords match, reject if the user exists, hash with bcryptjs, create the user, return a success/error response.
+- Keep GitHub OAuth working.
 
 ## Notes
 
-<!-- Scope, references, constraints, and anything worth remembering. -->
-
--
+- **Verify current Auth.js v5 Credentials-provider conventions via Context7 before writing** (split-pattern override + `authorize` signature).
+- `bcryptjs` is already installed; `User.hashedPassword` already exists (migration `20260724034852_add_user_password`) → **no new migration needed**.
+- Edge-safety: bcrypt is Node-only — it must live in `auth.ts`, never in `auth.config.ts` (the proxy imports the config).
+- Credentials requires the JWT session strategy (already set in Phase 1).
+- Testing: `curl POST /api/auth/register` → then `/api/auth/signin` with email/password → redirect to `/dashboard`; confirm GitHub OAuth still works.
+- Spec: `context/features/auth-phase-2-spec.md`. Ref: authjs.dev Credentials guide.
 
 ## History
 
