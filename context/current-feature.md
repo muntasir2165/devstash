@@ -1,22 +1,29 @@
-# Current Feature
+# Current Feature: Auth Setup — NextAuth v5 + GitHub Provider
 
-<!-- One or two sentences describing the feature currently being worked on. -->
+Set up NextAuth (Auth.js) v5 with the Prisma adapter and GitHub OAuth, protecting `/dashboard/*` and using NextAuth's default sign-in page (Phase 1).
 
 ## Status
 
-Not started
+In Progress
 
 ## Goals
 
-<!-- What this feature needs to accomplish. Replace with concrete goals. -->
-
--
+- Install `next-auth@beta` (v5) and `@auth/prisma-adapter`.
+- Split config for edge compatibility: `src/auth.config.ts` (providers only, no adapter) + `src/auth.ts` (Prisma adapter + `session: { strategy: 'jwt' }`).
+- Add the GitHub OAuth provider.
+- Add the route handler `src/app/api/auth/[...nextauth]/route.ts` exporting handlers from `auth.ts`.
+- Protect `/dashboard/*` via `src/proxy.ts` (named `export const proxy = auth(...)`), redirecting unauthenticated users to sign-in.
+- Extend the `Session` type with `user.id` in `src/types/next-auth.d.ts`.
+- Use NextAuth's default sign-in page (do NOT set a custom `pages.signIn`).
 
 ## Notes
 
-<!-- Scope, references, constraints, and anything worth remembering. -->
-
--
+- **Verify current Auth.js v5 config/conventions via Context7 before writing** (APIs shift fast on the beta).
+- Gotchas: use `next-auth@beta` (not `@latest` = v4); `proxy.ts` sits at `src/proxy.ts` (sibling of `app/`); named export `export const proxy = auth(...)` (not default); JWT session strategy with the split-config pattern.
+- Env vars: `AUTH_SECRET`, `AUTH_GITHUB_ID`, `AUTH_GITHUB_SECRET` (`AUTH_SECRET` already generated via `npx auth secret`). Never read/echo `.env`.
+- Prisma adapter uses the existing `User`/`Account`/`Session`/`VerificationToken` models (already in the schema). Confirm no schema change is needed; if one is, use `prisma migrate dev` on the Neon dev branch (never `db push`), per AGENTS.md.
+- Testing: `/dashboard` → redirects to sign-in → "Sign in with GitHub" → back to `/dashboard`.
+- Spec: `context/features/auth-phase-1-spec.md`. Refs: authjs.dev edge-compatibility + Prisma adapter guides.
 
 ## History
 
