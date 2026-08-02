@@ -8,14 +8,12 @@ import {
   Image as ImageIcon,
   Layers,
   Link as LinkIcon,
-  Settings,
   Sparkles,
   Star,
   StickyNote,
   Terminal,
 } from "lucide-react";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import {
   Collapsible,
@@ -36,9 +34,10 @@ import {
   SidebarMenuItem,
   SidebarSeparator,
 } from "@/components/ui/sidebar";
+import { auth } from "@/auth";
+import { SidebarUser } from "@/components/dashboard/SidebarUser";
 import { getSidebarCollections } from "@/lib/db/collections";
 import { getSidebarItemTypes } from "@/lib/db/items";
-import { currentUser } from "@/lib/mock-data";
 
 type IconComponent = ComponentType<{
   className?: string;
@@ -58,20 +57,11 @@ const ICON_MAP: Record<string, IconComponent> = {
 /** Item type slugs that display a "PRO" badge in the sidebar. */
 const PRO_TYPE_SLUGS = new Set(["file", "image"]);
 
-function getInitials(name: string) {
-  return name
-    .split(" ")
-    .map((part) => part[0])
-    .filter(Boolean)
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-}
-
 export async function AppSidebar() {
-  const [itemTypes, { favorites, recents }] = await Promise.all([
+  const [itemTypes, { favorites, recents }, session] = await Promise.all([
     getSidebarItemTypes(),
     getSidebarCollections(),
+    auth(),
   ]);
 
   return (
@@ -215,27 +205,7 @@ export async function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border p-2">
-        <button
-          type="button"
-          className="flex w-full items-center gap-2 rounded-md p-2 text-left transition-colors hover:bg-sidebar-accent"
-        >
-          <Avatar>
-            <AvatarImage
-              src={currentUser.image ?? undefined}
-              alt={currentUser.name}
-            />
-            <AvatarFallback>{getInitials(currentUser.name)}</AvatarFallback>
-          </Avatar>
-          <div className="grid min-w-0 flex-1 leading-tight">
-            <span className="truncate text-sm font-medium">
-              {currentUser.name}
-            </span>
-            <span className="truncate text-xs text-sidebar-foreground/60">
-              {currentUser.email}
-            </span>
-          </div>
-          <Settings className="size-4 shrink-0 text-sidebar-foreground/60" />
-        </button>
+        {session?.user ? <SidebarUser user={session.user} /> : null}
       </SidebarFooter>
     </Sidebar>
   );

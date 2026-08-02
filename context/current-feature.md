@@ -1,22 +1,29 @@
-# Current Feature
+# Current Feature: Auth Phase 3 — Auth UI (Sign In, Register, Sign Out)
 
-<!-- One or two sentences describing the feature currently being worked on. -->
+Replace NextAuth's default pages with custom `/sign-in` and `/register` UI, and wire the sidebar footer to the real signed-in user (avatar, name, sign-out).
 
 ## Status
 
-Not started
+In Progress
 
 ## Goals
 
-<!-- What this feature needs to accomplish. Replace with concrete goals. -->
-
--
+- Custom **`/sign-in`** page: email + password fields, "Sign in with GitHub" button, link to `/register`, form validation + error display.
+- Custom **`/register`** page: name/email/password/confirmPassword fields, validation (passwords match, email format), submit to `POST /api/auth/register`, redirect to sign-in on success.
+- Point Auth.js at the custom page: set `pages: { signIn: "/sign-in" }` and update `src/proxy.ts` to redirect unauthenticated users to `/sign-in` (replacing the default `/api/auth/signin`).
+- Sidebar footer on the **real session user**: avatar (GitHub `image` or initials fallback), user name; click opens a dropdown with **Sign out**; clicking the avatar/icon navigates to `/profile`.
+- Extract a **reusable avatar component** (image-or-initials).
 
 ## Notes
 
-<!-- Scope, references, constraints, and anything worth remembering. -->
-
--
+- Phases 1–2 deliberately used NextAuth's default sign-in page; Phase 3 introduces custom pages → now set `pages.signIn` and repoint the proxy redirect.
+- Sidebar footer currently uses mock `currentUser` (`@/lib/mock-data`) — replace with the real user via `auth()` (server component). Avatar: use `image` if present, else initials from name (e.g. "Brad Traversy" → "BT"). shadcn `avatar` is installed; `AppSidebar` already has a `getInitials` helper to extract.
+- Forms, the avatar dropdown, and sign-out need `'use client'`; fetch the session server-side where possible. Sign out via `signOut()` from `@/auth`.
+- **Verify current Auth.js v5 custom-pages + `signIn`/`signOut` conventions via Context7 before writing.**
+- No schema change → no migration.
+- `/profile` is a link target only (no profile page required this phase unless specified).
+- Testing: `/sign-in` renders; GitHub + email/password flows work; avatar shows image or initials; dropdown opens; Sign out logs out + redirects; `/register` creates an account → redirect to sign-in.
+- Spec: `context/features/auth-phase-3-spec.md`.
 
 ## History
 
