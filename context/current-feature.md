@@ -1,22 +1,27 @@
-# Current Feature
+# Current Feature: Email Verification on Register (Resend)
 
-<!-- One or two sentences describing the feature currently being worked on. -->
+After credentials registration, email the user a verification link (via Resend); they must click it to verify before they can sign in.
 
 ## Status
 
-Not started
+In Progress
 
 ## Goals
 
-<!-- What this feature needs to accomplish. Replace with concrete goals. -->
-
--
+- Add a Resend email client using `RESEND_API_KEY` (already in `.env`), plus a reusable "send email" helper and a verification-email template.
+- On registration, create the user as **unverified** (`User.emailVerified = null`), generate a single-use verification token with an expiry, and send the verification email with a tokenized link.
+- Add a verification endpoint (e.g. `GET /api/auth/verify-email?token=…` or a `/verify-email` route) that validates the token, sets `User.emailVerified = now()`, consumes the token, and redirects to `/sign-in` with a success message.
+- Block credentials sign-in for unverified users (the `authorize` in `auth.ts` returns null / a clear error until `emailVerified` is set).
+- Handle edge cases: expired/invalid/used token; GitHub OAuth users are auto-verified (adapter sets `emailVerified`) — only credentials sign-ups need this.
 
 ## Notes
 
-<!-- Scope, references, constraints, and anything worth remembering. -->
-
--
+- **Verify current Resend SDK (and optional `react-email`) conventions via Context7 before writing.**
+- **Secrets:** `RESEND_API_KEY` is already in `.env` — never read/echo it. Also need a verified Resend **from** address and a base URL to build links (e.g. `AUTH_URL` / `NEXT_PUBLIC_APP_URL`); document these in `.env.example`.
+- Reuse the existing `User.emailVerified DateTime?`. For tokens, prefer reusing the Auth.js `VerificationToken` model (`identifier` / `token` / `expires`) → **likely no migration**; if a dedicated token table/field is chosen instead, use `prisma migrate dev` on the Neon **dev** branch (never `db push`), per AGENTS.md. Confirm at `start`.
+- Token should be cryptographically random (`crypto.randomUUID()`/`randomBytes`) with a sensible expiry (e.g. 24h), single-use (deleted on verify).
+- Ties into Auth Phase 2 (`/api/auth/register`) and Phase 2's `authorize`.
+- Testing: register → verification email sent (check Resend dashboard/logs) → unverified sign-in blocked → click link → `emailVerified` set → sign-in succeeds; expired/invalid token shows an error.
 
 ## History
 
