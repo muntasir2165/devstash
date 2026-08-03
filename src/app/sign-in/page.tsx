@@ -9,6 +9,10 @@ const BANNERS: Record<string, { tone: "success" | "error"; text: string }> = {
     tone: "success",
     text: "Account created — check your email to verify before signing in.",
   },
+  ready: {
+    tone: "success",
+    text: "Account created — you can sign in now.",
+  },
   verified: {
     tone: "success",
     text: "Email verified — you can now sign in.",
@@ -33,11 +37,14 @@ export default async function SignInPage({
   }>;
 }) {
   const params = await searchParams;
-  const bannerKey = params.registered
-    ? "registered"
-    : params.verified
-      ? "verified"
-      : params.error;
+  const bannerKey =
+    params.registered === "ready"
+      ? "ready"
+      : params.registered
+        ? "registered"
+        : params.verified
+          ? "verified"
+          : params.error;
   const banner = bannerKey ? (BANNERS[bannerKey] ?? null) : null;
 
   return (

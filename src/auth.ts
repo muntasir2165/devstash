@@ -5,6 +5,7 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import bcrypt from "bcryptjs";
 
 import { prisma } from "@/lib/prisma";
+import { emailVerificationEnabled } from "@/lib/config";
 import { authConfig } from "@/auth.config";
 
 // Thrown when the password is correct but the email has not been verified yet.
@@ -38,7 +39,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const isValid = await bcrypt.compare(password, user.hashedPassword);
         if (!isValid) return null;
 
-        if (!user.emailVerified) throw new EmailNotVerifiedError();
+        if (emailVerificationEnabled && !user.emailVerified) {
+          throw new EmailNotVerifiedError();
+        }
 
         return { id: user.id, name: user.name, email: user.email, image: user.image };
       },
