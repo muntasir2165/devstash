@@ -33,16 +33,21 @@ export function RegisterForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email, password, confirmPassword }),
       });
+      const data = (await res.json().catch(() => null)) as {
+        error?: string;
+        verificationRequired?: boolean;
+      } | null;
 
       if (!res.ok) {
-        const data = (await res.json().catch(() => null)) as {
-          error?: string;
-        } | null;
         setError(data?.error ?? "Registration failed. Please try again.");
         return;
       }
 
-      router.push("/sign-in?registered=1");
+      router.push(
+        data?.verificationRequired === false
+          ? "/sign-in?registered=ready"
+          : "/sign-in?registered=1",
+      );
     } catch {
       setError("Something went wrong. Please try again.");
     } finally {

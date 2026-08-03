@@ -1,22 +1,28 @@
-# Current Feature
+# Current Feature: Toggle Email Verification (feature flag)
 
-<!-- One or two sentences describing the feature currently being worked on. -->
+Add an easy on/off switch for the email-verification system so it can be disabled while Resend has no verified domain (only the account owner's email can currently receive mail).
 
 ## Status
 
-Not started
+In Progress
 
 ## Goals
 
-<!-- What this feature needs to accomplish. Replace with concrete goals. -->
-
--
+- Add an env-driven flag (e.g. `EMAIL_VERIFICATION_ENABLED`) read through a single server-side config helper (`src/lib/config.ts`) so every call site shares one source of truth.
+- When **disabled**: registration creates the user already verified (`emailVerified = now()`), **skips the Resend send entirely** (no 403 for non-owner emails), and returns success; the register/sign-in copy reflects that no email step is needed.
+- When **disabled**: `authorize` does **not** block on `emailVerified` (users can sign in immediately).
+- When **enabled**: keep current behavior (send email, block unverified sign-in, roll back on send failure).
+- Document the flag in `.env.example`.
 
 ## Notes
 
-<!-- Scope, references, constraints, and anything worth remembering. -->
-
--
+- **Recommended mechanism: env var** (toggle without changing code), centralized in `src/lib/config.ts` (server-only; NOT `NEXT_PUBLIC`). Parse falsey values (`"false"`, `"0"`, empty) as off. Open to alternatives, but a hardcoded constant would require a redeploy to flip, so env is preferred.
+- **Default:** enabled (secure default) unless explicitly disabled — confirm at `start` (may prefer default-disabled in dev given no Resend domain).
+- Belt-and-suspenders when disabled: set `emailVerified` at creation **and** short-circuit the `authorize` verified-check, so users created while disabled aren't locked out if verification is re-enabled later.
+- Success copy should adapt: enabled → "check your email to verify"; disabled → "account created — you can sign in".
+- Touches Phase 2/verification work: `src/app/api/auth/register/route.ts`, `src/auth.ts` (authorize), `src/lib/verification.ts`/`email.ts`, and the sign-in `BANNERS`.
+- No schema change → no migration. GitHub OAuth is unaffected either way.
+- Testing: flag off → register any email → no send, account created + verified, immediate sign-in works; flag on → existing verification flow still works.
 
 ## History
 
