@@ -1,28 +1,22 @@
-# Current Feature: Toggle Email Verification (feature flag)
+# Current Feature
 
-Add an easy on/off switch for the email-verification system so it can be disabled while Resend has no verified domain (only the account owner's email can currently receive mail).
+<!-- One or two sentences describing the feature currently being worked on. -->
 
 ## Status
 
-In Progress
+Not started
 
 ## Goals
 
-- Add an env-driven flag (e.g. `EMAIL_VERIFICATION_ENABLED`) read through a single server-side config helper (`src/lib/config.ts`) so every call site shares one source of truth.
-- When **disabled**: registration creates the user already verified (`emailVerified = now()`), **skips the Resend send entirely** (no 403 for non-owner emails), and returns success; the register/sign-in copy reflects that no email step is needed.
-- When **disabled**: `authorize` does **not** block on `emailVerified` (users can sign in immediately).
-- When **enabled**: keep current behavior (send email, block unverified sign-in, roll back on send failure).
-- Document the flag in `.env.example`.
+<!-- What this feature needs to accomplish. Replace with concrete goals. -->
+
+-
 
 ## Notes
 
-- **Recommended mechanism: env var** (toggle without changing code), centralized in `src/lib/config.ts` (server-only; NOT `NEXT_PUBLIC`). Parse falsey values (`"false"`, `"0"`, empty) as off. Open to alternatives, but a hardcoded constant would require a redeploy to flip, so env is preferred.
-- **Default:** enabled (secure default) unless explicitly disabled — confirm at `start` (may prefer default-disabled in dev given no Resend domain).
-- Belt-and-suspenders when disabled: set `emailVerified` at creation **and** short-circuit the `authorize` verified-check, so users created while disabled aren't locked out if verification is re-enabled later.
-- Success copy should adapt: enabled → "check your email to verify"; disabled → "account created — you can sign in".
-- Touches Phase 2/verification work: `src/app/api/auth/register/route.ts`, `src/auth.ts` (authorize), `src/lib/verification.ts`/`email.ts`, and the sign-in `BANNERS`.
-- No schema change → no migration. GitHub OAuth is unaffected either way.
-- Testing: flag off → register any email → no send, account created + verified, immediate sign-in works; flag on → existing verification flow still works.
+<!-- Scope, references, constraints, and anything worth remembering. -->
+
+-
 
 ## History
 
@@ -45,3 +39,5 @@ In Progress
 - **2026-08-02 — Email Verification on Register (Resend).** On branch `feature/email-verification`. Credentials sign-ups now get a Resend verification email and must click the link before they can sign in (verified Resend + Auth.js v5 error conventions via Context7). **No migration** — reused the existing `User.emailVerified` + `VerificationToken` table. Added `src/lib/email.ts` (Resend client + `sendVerificationEmail`, plain-HTML template; the SDK returns `{data,error}` instead of throwing), `src/lib/base-url.ts` (`AUTH_URL`/forwarded-host), `src/lib/verification.ts` (`issueVerificationToken` = `randomBytes(32)` token, 24h expiry, single-use; `consumeVerificationToken` = validate/expire/set `emailVerified`/delete), and `GET /api/auth/verify-email` (redirects to `/sign-in?verified=1` or `?error=…_token`). Updated the register route (create user → send email), `auth.ts` (throws a custom `EmailNotVerifiedError extends CredentialsSignin`, `code="email_not_verified"`, when a valid password belongs to an unverified account), and the `credentialsSignIn` action (maps that code to a friendly message). Documented `RESEND_API_KEY`/`EMAIL_FROM`/`AUTH_URL` in `.env.example`. Also added `scripts/delete-users.ts` (dry-run-by-default; deletes all users + content except `demo@devstash.io` in FK-safe order — items before item types since `Item.itemTypeId` is restrict; preserves null-owned system item types).
   - **Bug fixes found during testing:** (1) **Success/failure banners** — registration success now redirects to `/sign-in?registered=1` and shows an "Account created — check your email to verify" banner (added a `registered` entry to the sign-in `BANNERS` map beside `verified`/`*_token`); registration failures were upgraded from plain red text to a matching styled banner on the register form. (2) **Owner-email vs other-email (Resend 403)** — without a verified domain the `onboarding@resend.dev` sender only delivers to the Resend account owner, so registering any other address returns a Resend **403**; the route was ignoring the send result and still returning **201** (false "check your email"). Fixed: the route now checks the send result and, on failure, **rolls back the just-created user + token and returns 502** with an error shown in the register banner.
   - Verified end-to-end on the Neon dev branch: register (deliverable email) → token created → verify link `307` → `emailVerified` set + token consumed; unverified sign-in blocked (`session=null`) / verified allowed; non-deliverable email → `502` + rollback (0 users / 0 tokens). `npm run build` + `npm run lint` pass. Real delivery needs a verified domain in `EMAIL_FROM`. Test users created/removed in dev throughout via `scripts/delete-users.ts`.
+- **2026-08-03 — Toggle Email Verification (feature flag).** On branch `feature/toggle-email-verification`. Added an env flag `EMAIL_VERIFICATION_ENABLED` (read via new `src/lib/config.ts`; **default enabled** — off only for `false`/`0`/`off`/`no`) to switch the whole verification system off while Resend has no verified domain. When disabled: the register route creates the user already verified (`emailVerified = now()`) and **skips the Resend send** (no 403 for non-owner emails), returning `{ verificationRequired: false }`; `auth.ts`'s `authorize` gate becomes `emailVerificationEnabled && !user.emailVerified` so unverified users aren't blocked. `RegisterForm` uses `verificationRequired` to redirect to `/sign-in?registered=ready` (“you can sign in now”) vs `?registered=1` (“check your email”), with a matching `ready` banner. Documented the flag in `.env.example` (default `"true"`). No schema change → no migration. `npm run build` + `npm run lint` pass; disabled register verified live (201 + `verificationRequired:false`, user created with `emailVerified` set, no email sent).
+  - ⚠️ **Gotcha logged:** the disabled-mode runtime test used `next start` (production mode), which loads `.env.production` — whose `DATABASE_URL` points to the **production** Neon branch — so a `disabled-test@example.com` row was inadvertently written to **production**, then removed via a targeted delete (with the user's explicit OK). Lesson: never use `next start` for “dev” testing; use `next dev` (loads `.env` = dev) or set `DATABASE_URL` explicitly. And to keep the disable local-only, put `EMAIL_VERIFICATION_ENABLED=false` in `.env.development.local` (loaded only by `next dev`), not `.env` (which prod mode also loads).
