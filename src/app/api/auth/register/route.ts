@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 
 import { prisma } from "@/lib/prisma";
+import { issueVerificationToken } from "@/lib/verification";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -58,6 +59,23 @@ export async function POST(req: Request) {
     data: { name: name.trim(), email: normalizedEmail, hashedPassword },
     select: { id: true, name: true, email: true },
   });
+
+  // Registration only succeeds if the verification email actually sends.
+  const emailResult = await issueVerificationToken(normalizedEmail);
+  if (!emailResult.ok) {
+    // Roll back so the address is free to retry and no unverifiable account lingers.
+    await prisma.verificationToken.deleteMany({
+      where: { identifier: normalizedEmail },
+    });
+    await prisma.user.delete({ where: { id: user.id } });
+    return NextResponse.json(
+      {
+        error:
+          "We couldn't send the verification email. Please check the address and try again.",
+      },
+      { status: 502 },
+    );
+  }
 
   return NextResponse.json({ user }, { status: 201 });
 }

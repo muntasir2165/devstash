@@ -21,6 +21,12 @@ export async function credentialsSignIn(
     // A successful sign-in throws a NEXT_REDIRECT (not an AuthError) — re-throw it
     // so Next.js can complete the redirect. Only handle real auth failures here.
     if (error instanceof AuthError) {
+      const code = (error as AuthError & { code?: string }).code;
+      if (code === "email_not_verified") {
+        return {
+          error: "Please verify your email before signing in. Check your inbox.",
+        };
+      }
       return {
         error:
           error.type === "CredentialsSignin"

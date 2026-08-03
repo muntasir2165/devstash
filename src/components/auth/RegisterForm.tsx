@@ -42,7 +42,7 @@ export function RegisterForm() {
         return;
       }
 
-      router.push("/sign-in");
+      router.push("/sign-in?registered=1");
     } catch {
       setError("Something went wrong. Please try again.");
     } finally {
@@ -102,7 +102,10 @@ export function RegisterForm() {
       </div>
 
       {error ? (
-        <p role="alert" className="text-sm text-destructive">
+        <p
+          role="alert"
+          className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
+        >
           {error}
         </p>
       ) : null}
