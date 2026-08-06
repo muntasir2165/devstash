@@ -1,29 +1,22 @@
-# Current Feature: Profile Page
+# Current Feature
 
-Build a protected `/profile` page showing the signed-in user's info and usage stats, with account actions: change password (credentials users only) and delete account (with confirmation).
+<!-- One or two sentences describing the feature currently being worked on. -->
 
 ## Status
 
-In Progress
+Not started
 
 ## Goals
 
-- Add a **protected `/profile` route** (require auth; unauthenticated → `/sign-in`).
-- **User info:** email, name, avatar (reuse `UserAvatar` — GitHub image or initials), and account creation date.
-- **Usage stats:** total items, total collections, and a **per-type breakdown** (snippets, prompts, commands, notes, links, files, images) with counts.
-- **Change password** — visible only for credentials/email accounts (`hashedPassword` set; hidden for GitHub-only): verify current password + set a new one (bcrypt, 12 rounds).
-- **Delete account** with a confirmation dialog: remove the user + all owned content (FK-safe order), then sign out.
-- Follow existing data-fetching (`src/lib/db/*`, `auth()`) and component/UI patterns.
+<!-- What this feature needs to accomplish. Replace with concrete goals. -->
+
+-
 
 ## Notes
 
-- **Route protection:** extend the `proxy` matcher to include `/profile`, or guard in the server component via `auth()` (mirror `/dashboard`). Decide at `start`.
-- **Identity/avatar:** reuse `UserAvatar` (image-or-initials) + the `auth()` session; `SidebarUser` already links Profile → `/profile`. Account creation date = `User.createdAt` — confirm the field exists on the schema (fallback/display-only if not; no migration expected).
-- **Stats:** reuse/extend `getItemStats`/`getCollectionStats` (`src/lib/db/items.ts`, `collections.ts`) and the per-type counts from `getSidebarItemTypes()` rather than new queries where possible; **scope all counts to the current user**.
-- **Change password:** new authenticated `POST /api/auth/change-password` (or server action) — bcrypt-compare current password, then hash new/confirm (12 rounds, matches register/reset). Render the form only for accounts with `hashedPassword` (GitHub-only users have none).
-- **Delete account:** new authenticated `POST /api/auth/delete-account` (or server action) that deletes the current user; reuse the **FK-safe deletion order** from `scripts/delete-users.ts` (items before item types, then collections/tags/sessions/accounts/tokens) or rely on cascade where defined; confirmation dialog to prevent accidents; sign out + redirect after.
-- Likely needs a shadcn **dialog/alert-dialog** for the delete confirmation (install via the CLI if not present).
-- No schema change expected → no migration. `npm run build` + `npm run lint` must pass; verify on the Neon **dev** branch.
+<!-- Scope, references, constraints, and anything worth remembering. -->
+
+-
 
 ## History
 
@@ -49,3 +42,4 @@ In Progress
 - **2026-08-03 — Toggle Email Verification (feature flag).** On branch `feature/toggle-email-verification`. Added an env flag `EMAIL_VERIFICATION_ENABLED` (read via new `src/lib/config.ts`; **default enabled** — off only for `false`/`0`/`off`/`no`) to switch the whole verification system off while Resend has no verified domain. When disabled: the register route creates the user already verified (`emailVerified = now()`) and **skips the Resend send** (no 403 for non-owner emails), returning `{ verificationRequired: false }`; `auth.ts`'s `authorize` gate becomes `emailVerificationEnabled && !user.emailVerified` so unverified users aren't blocked. `RegisterForm` uses `verificationRequired` to redirect to `/sign-in?registered=ready` (“you can sign in now”) vs `?registered=1` (“check your email”), with a matching `ready` banner. Documented the flag in `.env.example` (default `"true"`). No schema change → no migration. `npm run build` + `npm run lint` pass; disabled register verified live (201 + `verificationRequired:false`, user created with `emailVerified` set, no email sent).
   - ⚠️ **Gotcha logged:** the disabled-mode runtime test used `next start` (production mode), which loads `.env.production` — whose `DATABASE_URL` points to the **production** Neon branch — so a `disabled-test@example.com` row was inadvertently written to **production**, then removed via a targeted delete (with the user's explicit OK). Lesson: never use `next start` for “dev” testing; use `next dev` (loads `.env` = dev) or set `DATABASE_URL` explicitly. And to keep the disable local-only, put `EMAIL_VERIFICATION_ENABLED=false` in `.env.development.local` (loaded only by `next dev`), not `.env` (which prod mode also loads).
 - **2026-08-06 — Forgot Password (reset flow).** On branch `feature/forgot-password`. Added a self-service password reset reusing the existing `VerificationToken` table (**no migration**). A "Forgot your password?" link on `/sign-in` leads to `/forgot-password`, whose client form POSTs to a new `POST /api/auth/forgot-password` that **always** returns a neutral "if an account exists, we've sent a link" response (no account enumeration). `src/lib/password-reset.ts` mirrors `verification.ts`: `issuePasswordReset` writes a single-use `randomBytes(32)` token with a **1h** expiry under a **namespaced identifier** `password-reset:<email>` (so a reset token can't be used at the verify endpoint and vice-versa) and emails the link via a new `sendPasswordResetEmail` (added to `src/lib/email.ts`, same `{data,error}` handling as `sendVerificationEmail`); it only issues for accounts that already have a `hashedPassword`, silently skipping OAuth-only accounts. `resetPassword` validates the token (exists, correct namespace, not expired), bcrypt-hashes (12 rounds) the new password, updates the user, and deletes the token (single use). `/reset-password?token=…` (`ResetPasswordForm`) POSTs to `POST /api/auth/reset-password` (validates token presence, password length ≥ 8, and match) then redirects to `/sign-in?reset=1`, which shows a new "Password updated" success banner (added to the sign-in `BANNERS` map). No schema change → no migration. `npm run build` and `npm run lint` pass; verified end-to-end against the Neon dev branch (13/13 checks: register → neutral request → namespaced ~60min token → mismatch/short rejected → reset `200` → new password valid, old invalid, token single-use with reuse rejected, unknown email neutral with no token issued). Note: Resend rejects `@example.com` recipients with a **422** ("use our testing address"), so the reset email doesn't deliver in local `example.com` tests — the send is best-effort and ignored so the flow still completes; real delivery needs a verified domain in `EMAIL_FROM`.
+- **2026-08-06 — Profile Page.** On branch `feature/profile-page`. Added a protected `/profile` page showing the signed-in user's info (avatar via `UserAvatar`, name, email, "member since" from `User.createdAt`), usage stats (total items, total collections, and a per-type breakdown of the 7 system item types), and account actions. **Route protection** is doubled up: the `proxy` matcher now covers `/profile/:path*` (redirecting to `/sign-in?callbackUrl=/profile`) and the page also guards via `auth()`. Added `src/lib/db/profile.ts` (`getProfileStats(userId)` — user-scoped counts using Prisma **filtered `_count`** relations so the breakdown reflects only the current user's items) and `src/lib/profile-actions.ts` server actions: `changePassword` (bcrypt-compares the current password, rejects GitHub-only accounts / mismatches / unchanged passwords, then hashes the new one at 12 rounds) and `deleteAccount` (deletes the user + all owned content in the proven FK-safe order — items → collections → custom item types → tags → sessions → accounts → user → tokens, preserving null-owned system types — then signs out to `/sign-in?deleted=1`). New client components `ChangePasswordForm` (`useActionState`) and `DeleteAccountDialog` (installed the shadcn **alert-dialog**, confirm via `useFormStatus`); the change-password card only renders for accounts with a `hashedPassword`. Added a `deleted` success banner to the sign-in `BANNERS` map. No schema change → no migration. `npm run build` and `npm run lint` pass; verified on the Neon dev branch (16/16 DB checks: stats scoped correctly with the custom-type item excluded from the system-type breakdown, bcrypt change-password logic, and the delete cascade removing the user + content while preserving system types) plus curl (`/profile` unauthenticated → `302 /sign-in?callbackUrl=%2Fprofile`; authenticated render `200` with all sections). Server actions can't be exercised via curl, so those are covered by the type-check + the DB-level logic checks.
