@@ -1,22 +1,29 @@
-# Current Feature
+# Current Feature: Profile Page
 
-<!-- One or two sentences describing the feature currently being worked on. -->
+Build a protected `/profile` page showing the signed-in user's info and usage stats, with account actions: change password (credentials users only) and delete account (with confirmation).
 
 ## Status
 
-Not started
+In Progress
 
 ## Goals
 
-<!-- What this feature needs to accomplish. Replace with concrete goals. -->
-
--
+- Add a **protected `/profile` route** (require auth; unauthenticated → `/sign-in`).
+- **User info:** email, name, avatar (reuse `UserAvatar` — GitHub image or initials), and account creation date.
+- **Usage stats:** total items, total collections, and a **per-type breakdown** (snippets, prompts, commands, notes, links, files, images) with counts.
+- **Change password** — visible only for credentials/email accounts (`hashedPassword` set; hidden for GitHub-only): verify current password + set a new one (bcrypt, 12 rounds).
+- **Delete account** with a confirmation dialog: remove the user + all owned content (FK-safe order), then sign out.
+- Follow existing data-fetching (`src/lib/db/*`, `auth()`) and component/UI patterns.
 
 ## Notes
 
-<!-- Scope, references, constraints, and anything worth remembering. -->
-
--
+- **Route protection:** extend the `proxy` matcher to include `/profile`, or guard in the server component via `auth()` (mirror `/dashboard`). Decide at `start`.
+- **Identity/avatar:** reuse `UserAvatar` (image-or-initials) + the `auth()` session; `SidebarUser` already links Profile → `/profile`. Account creation date = `User.createdAt` — confirm the field exists on the schema (fallback/display-only if not; no migration expected).
+- **Stats:** reuse/extend `getItemStats`/`getCollectionStats` (`src/lib/db/items.ts`, `collections.ts`) and the per-type counts from `getSidebarItemTypes()` rather than new queries where possible; **scope all counts to the current user**.
+- **Change password:** new authenticated `POST /api/auth/change-password` (or server action) — bcrypt-compare current password, then hash new/confirm (12 rounds, matches register/reset). Render the form only for accounts with `hashedPassword` (GitHub-only users have none).
+- **Delete account:** new authenticated `POST /api/auth/delete-account` (or server action) that deletes the current user; reuse the **FK-safe deletion order** from `scripts/delete-users.ts` (items before item types, then collections/tags/sessions/accounts/tokens) or rely on cascade where defined; confirmation dialog to prevent accidents; sign out + redirect after.
+- Likely needs a shadcn **dialog/alert-dialog** for the delete confirmation (install via the CLI if not present).
+- No schema change expected → no migration. `npm run build` + `npm run lint` must pass; verify on the Neon **dev** branch.
 
 ## History
 
