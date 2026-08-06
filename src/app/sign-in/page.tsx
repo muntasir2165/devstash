@@ -21,6 +21,10 @@ const BANNERS: Record<string, { tone: "success" | "error"; text: string }> = {
     tone: "success",
     text: "Password updated — sign in with your new password.",
   },
+  deleted: {
+    tone: "success",
+    text: "Your account has been deleted.",
+  },
   expired_token: {
     tone: "error",
     text: "That verification link has expired. Please register again.",
@@ -38,6 +42,7 @@ export default async function SignInPage({
     registered?: string;
     verified?: string;
     reset?: string;
+    deleted?: string;
     error?: string;
   }>;
 }) {
@@ -51,7 +56,9 @@ export default async function SignInPage({
           ? "verified"
           : params.reset
             ? "reset"
-            : params.error;
+            : params.deleted
+              ? "deleted"
+              : params.error;
   const banner = bannerKey ? (BANNERS[bannerKey] ?? null) : null;
 
   return (
