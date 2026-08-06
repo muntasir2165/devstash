@@ -1,30 +1,22 @@
-# Current Feature: Forgot Password (reset flow)
+# Current Feature
 
-Add a "Forgot password?" link + flow: request a reset by email, receive a tokenized link (Resend), and set a new password. Reuse the `VerificationToken` model for the reset tokens.
+<!-- One or two sentences describing the feature currently being worked on. -->
 
 ## Status
 
-In Progress
+Not started
 
 ## Goals
 
-- Add a **"Forgot password?"** link on `/sign-in` → `/forgot-password`.
-- **`/forgot-password`** page: email input → server action/route that (if the account exists) creates a reset token in `VerificationToken` and emails a reset link via Resend. Always show a neutral "if an account exists, we've sent a link" message (no account enumeration).
-- **`/reset-password?token=…`** page: new password + confirm → validate token (exists, not expired) → update the user's `hashedPassword` (bcrypt, 12 rounds) → consume the token → redirect to `/sign-in` with a success banner.
-- **Reuse the existing `VerificationToken` model** for reset tokens (no migration).
-- Reuse the Resend email helper (add `sendPasswordResetEmail`) and a `src/lib/password-reset.ts` (issue/consume) mirroring `verification.ts`.
+<!-- What this feature needs to accomplish. Replace with concrete goals. -->
+
+-
 
 ## Notes
 
-- **Verify current Auth.js/Resend patterns via Context7** only if needed; most of this is our own code (mirrors the email-verification feature).
-- **Token cross-use:** `VerificationToken` is already used for email verification (both keyed by email, both looked up by `token`). To avoid a reset token working at the verify endpoint (and vice-versa), **namespace the reset identifier** (e.g. `password-reset:<email>`) so each flow only matches its own rows — no schema change. Decide at `start`.
-- Token: `randomBytes(32)`, **short expiry (~1h)** (shorter than verify's 24h), single-use (deleted on reset).
-- **Security:** the request endpoint must respond identically whether or not the email exists (prevent enumeration); consider rate-limiting later. Never echo whether an email is registered.
-- **OAuth-only users** (no `hashedPassword`): decide at `start` whether a reset can *set* a first password (adds credentials login) or is rejected.
-- Resend caveat: reset emails always send (independent of `EMAIL_VERIFICATION_ENABLED`); with no verified domain, non-owner recipients 403 locally — reuse the `{ ok, error }` handling and surface failures.
-- Touches: `src/app/sign-in/page.tsx` (link + a `reset` success banner), `src/lib/email.ts`, `src/lib/password-reset.ts`, new `/forgot-password` + `/reset-password` routes/pages, bcrypt.
-- No schema change → no migration.
-- Testing: forgot-password (owner email) → reset link → set new password → sign in with it; expired/invalid token errors; unknown email still shows the neutral message.
+<!-- Scope, references, constraints, and anything worth remembering. -->
+
+-
 
 ## History
 
@@ -49,3 +41,4 @@ In Progress
   - Verified end-to-end on the Neon dev branch: register (deliverable email) → token created → verify link `307` → `emailVerified` set + token consumed; unverified sign-in blocked (`session=null`) / verified allowed; non-deliverable email → `502` + rollback (0 users / 0 tokens). `npm run build` + `npm run lint` pass. Real delivery needs a verified domain in `EMAIL_FROM`. Test users created/removed in dev throughout via `scripts/delete-users.ts`.
 - **2026-08-03 — Toggle Email Verification (feature flag).** On branch `feature/toggle-email-verification`. Added an env flag `EMAIL_VERIFICATION_ENABLED` (read via new `src/lib/config.ts`; **default enabled** — off only for `false`/`0`/`off`/`no`) to switch the whole verification system off while Resend has no verified domain. When disabled: the register route creates the user already verified (`emailVerified = now()`) and **skips the Resend send** (no 403 for non-owner emails), returning `{ verificationRequired: false }`; `auth.ts`'s `authorize` gate becomes `emailVerificationEnabled && !user.emailVerified` so unverified users aren't blocked. `RegisterForm` uses `verificationRequired` to redirect to `/sign-in?registered=ready` (“you can sign in now”) vs `?registered=1` (“check your email”), with a matching `ready` banner. Documented the flag in `.env.example` (default `"true"`). No schema change → no migration. `npm run build` + `npm run lint` pass; disabled register verified live (201 + `verificationRequired:false`, user created with `emailVerified` set, no email sent).
   - ⚠️ **Gotcha logged:** the disabled-mode runtime test used `next start` (production mode), which loads `.env.production` — whose `DATABASE_URL` points to the **production** Neon branch — so a `disabled-test@example.com` row was inadvertently written to **production**, then removed via a targeted delete (with the user's explicit OK). Lesson: never use `next start` for “dev” testing; use `next dev` (loads `.env` = dev) or set `DATABASE_URL` explicitly. And to keep the disable local-only, put `EMAIL_VERIFICATION_ENABLED=false` in `.env.development.local` (loaded only by `next dev`), not `.env` (which prod mode also loads).
+- **2026-08-06 — Forgot Password (reset flow).** On branch `feature/forgot-password`. Added a self-service password reset reusing the existing `VerificationToken` table (**no migration**). A "Forgot your password?" link on `/sign-in` leads to `/forgot-password`, whose client form POSTs to a new `POST /api/auth/forgot-password` that **always** returns a neutral "if an account exists, we've sent a link" response (no account enumeration). `src/lib/password-reset.ts` mirrors `verification.ts`: `issuePasswordReset` writes a single-use `randomBytes(32)` token with a **1h** expiry under a **namespaced identifier** `password-reset:<email>` (so a reset token can't be used at the verify endpoint and vice-versa) and emails the link via a new `sendPasswordResetEmail` (added to `src/lib/email.ts`, same `{data,error}` handling as `sendVerificationEmail`); it only issues for accounts that already have a `hashedPassword`, silently skipping OAuth-only accounts. `resetPassword` validates the token (exists, correct namespace, not expired), bcrypt-hashes (12 rounds) the new password, updates the user, and deletes the token (single use). `/reset-password?token=…` (`ResetPasswordForm`) POSTs to `POST /api/auth/reset-password` (validates token presence, password length ≥ 8, and match) then redirects to `/sign-in?reset=1`, which shows a new "Password updated" success banner (added to the sign-in `BANNERS` map). No schema change → no migration. `npm run build` and `npm run lint` pass; verified end-to-end against the Neon dev branch (13/13 checks: register → neutral request → namespaced ~60min token → mismatch/short rejected → reset `200` → new password valid, old invalid, token single-use with reuse rejected, unknown email neutral with no token issued). Note: Resend rejects `@example.com` recipients with a **422** ("use our testing address"), so the reset email doesn't deliver in local `example.com` tests — the send is best-effort and ignored so the flow still completes; real delivery needs a verified domain in `EMAIL_FROM`.
