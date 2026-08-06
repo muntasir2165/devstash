@@ -1,22 +1,30 @@
-# Current Feature
+# Current Feature: Forgot Password (reset flow)
 
-<!-- One or two sentences describing the feature currently being worked on. -->
+Add a "Forgot password?" link + flow: request a reset by email, receive a tokenized link (Resend), and set a new password. Reuse the `VerificationToken` model for the reset tokens.
 
 ## Status
 
-Not started
+In Progress
 
 ## Goals
 
-<!-- What this feature needs to accomplish. Replace with concrete goals. -->
-
--
+- Add a **"Forgot password?"** link on `/sign-in` → `/forgot-password`.
+- **`/forgot-password`** page: email input → server action/route that (if the account exists) creates a reset token in `VerificationToken` and emails a reset link via Resend. Always show a neutral "if an account exists, we've sent a link" message (no account enumeration).
+- **`/reset-password?token=…`** page: new password + confirm → validate token (exists, not expired) → update the user's `hashedPassword` (bcrypt, 12 rounds) → consume the token → redirect to `/sign-in` with a success banner.
+- **Reuse the existing `VerificationToken` model** for reset tokens (no migration).
+- Reuse the Resend email helper (add `sendPasswordResetEmail`) and a `src/lib/password-reset.ts` (issue/consume) mirroring `verification.ts`.
 
 ## Notes
 
-<!-- Scope, references, constraints, and anything worth remembering. -->
-
--
+- **Verify current Auth.js/Resend patterns via Context7** only if needed; most of this is our own code (mirrors the email-verification feature).
+- **Token cross-use:** `VerificationToken` is already used for email verification (both keyed by email, both looked up by `token`). To avoid a reset token working at the verify endpoint (and vice-versa), **namespace the reset identifier** (e.g. `password-reset:<email>`) so each flow only matches its own rows — no schema change. Decide at `start`.
+- Token: `randomBytes(32)`, **short expiry (~1h)** (shorter than verify's 24h), single-use (deleted on reset).
+- **Security:** the request endpoint must respond identically whether or not the email exists (prevent enumeration); consider rate-limiting later. Never echo whether an email is registered.
+- **OAuth-only users** (no `hashedPassword`): decide at `start` whether a reset can *set* a first password (adds credentials login) or is rejected.
+- Resend caveat: reset emails always send (independent of `EMAIL_VERIFICATION_ENABLED`); with no verified domain, non-owner recipients 403 locally — reuse the `{ ok, error }` handling and surface failures.
+- Touches: `src/app/sign-in/page.tsx` (link + a `reset` success banner), `src/lib/email.ts`, `src/lib/password-reset.ts`, new `/forgot-password` + `/reset-password` routes/pages, bcrypt.
+- No schema change → no migration.
+- Testing: forgot-password (owner email) → reset link → set new password → sign in with it; expired/invalid token errors; unknown email still shows the neutral message.
 
 ## History
 

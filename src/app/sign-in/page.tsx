@@ -17,6 +17,10 @@ const BANNERS: Record<string, { tone: "success" | "error"; text: string }> = {
     tone: "success",
     text: "Email verified — you can now sign in.",
   },
+  reset: {
+    tone: "success",
+    text: "Password updated — sign in with your new password.",
+  },
   expired_token: {
     tone: "error",
     text: "That verification link has expired. Please register again.",
@@ -33,6 +37,7 @@ export default async function SignInPage({
   searchParams: Promise<{
     registered?: string;
     verified?: string;
+    reset?: string;
     error?: string;
   }>;
 }) {
@@ -44,7 +49,9 @@ export default async function SignInPage({
         ? "registered"
         : params.verified
           ? "verified"
-          : params.error;
+          : params.reset
+            ? "reset"
+            : params.error;
   const banner = bannerKey ? (BANNERS[bannerKey] ?? null) : null;
 
   return (
@@ -82,6 +89,15 @@ export default async function SignInPage({
       </div>
 
       <SignInForm />
+
+      <p className="text-center text-sm">
+        <Link
+          href="/forgot-password"
+          className="text-muted-foreground underline underline-offset-4 hover:text-foreground"
+        >
+          Forgot your password?
+        </Link>
+      </p>
 
       <p className="text-center text-sm text-muted-foreground">
         Don&apos;t have an account?{" "}
