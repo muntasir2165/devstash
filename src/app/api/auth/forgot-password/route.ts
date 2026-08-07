@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 
 import { issuePasswordReset } from "@/lib/password-reset";
+import {
+  checkRateLimit,
+  forgotPasswordRateLimit,
+  getClientIp,
+  tooManyRequests,
+} from "@/lib/rate-limit";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -11,6 +17,9 @@ const NEUTRAL = {
 };
 
 export async function POST(req: Request) {
+  const rl = await checkRateLimit(forgotPasswordRateLimit, getClientIp(req.headers));
+  if (!rl.success) return tooManyRequests(rl.retryAfter);
+
   let body: unknown;
   try {
     body = await req.json();

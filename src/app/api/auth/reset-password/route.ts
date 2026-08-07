@@ -1,8 +1,17 @@
 import { NextResponse } from "next/server";
 
 import { resetPassword } from "@/lib/password-reset";
+import {
+  checkRateLimit,
+  getClientIp,
+  resetPasswordRateLimit,
+  tooManyRequests,
+} from "@/lib/rate-limit";
 
 export async function POST(req: Request) {
+  const rl = await checkRateLimit(resetPasswordRateLimit, getClientIp(req.headers));
+  if (!rl.success) return tooManyRequests(rl.retryAfter);
+
   let body: unknown;
   try {
     body = await req.json();

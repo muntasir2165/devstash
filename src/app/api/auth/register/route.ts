@@ -4,10 +4,19 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { emailVerificationEnabled } from "@/lib/config";
 import { issueVerificationToken } from "@/lib/verification";
+import {
+  checkRateLimit,
+  getClientIp,
+  registerRateLimit,
+  tooManyRequests,
+} from "@/lib/rate-limit";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function POST(req: Request) {
+  const rl = await checkRateLimit(registerRateLimit, getClientIp(req.headers));
+  if (!rl.success) return tooManyRequests(rl.retryAfter);
+
   let body: unknown;
   try {
     body = await req.json();

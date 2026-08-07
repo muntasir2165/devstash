@@ -3,14 +3,21 @@ import Credentials from "next-auth/providers/credentials";
 import GitHub from "next-auth/providers/github";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import bcrypt from "bcryptjs";
+import { headers } from "next/headers";
 
 import { prisma } from "@/lib/prisma";
 import { emailVerificationEnabled } from "@/lib/config";
 import { authConfig } from "@/auth.config";
+import { checkRateLimit, getClientIp, loginRateLimit } from "@/lib/rate-limit";
 
 // Thrown when the password is correct but the email has not been verified yet.
 class EmailNotVerifiedError extends CredentialsSignin {
   code = "email_not_verified";
+}
+
+// Thrown when too many login attempts come from the same IP + email.
+class RateLimitedError extends CredentialsSignin {
+  code = "rate_limited";
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
@@ -30,8 +37,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const password = credentials?.password;
         if (typeof email !== "string" || typeof password !== "string") return null;
 
+        const normalizedEmail = email.toLowerCase().trim();
+
+        // Throttle here (not just the sign-in action) so direct POSTs to
+        // /api/auth/callback/credentials are limited too.
+        const rl = await checkRateLimit(
+          loginRateLimit,
+          `${getClientIp(await headers())}:${normalizedEmail}`,
+        );
+        if (!rl.success) throw new RateLimitedError();
+
         const user = await prisma.user.findUnique({
-          where: { email: email.toLowerCase().trim() },
+          where: { email: normalizedEmail },
         });
         // No such user, or a GitHub-only account with no password set.
         if (!user?.hashedPassword) return null;

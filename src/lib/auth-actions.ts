@@ -27,6 +27,11 @@ export async function credentialsSignIn(
           error: "Please verify your email before signing in. Check your inbox.",
         };
       }
+      if (code === "rate_limited") {
+        return {
+          error: "Too many sign-in attempts. Please try again in a few minutes.",
+        };
+      }
       return {
         error:
           error.type === "CredentialsSignin"

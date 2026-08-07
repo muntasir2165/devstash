@@ -1,24 +1,26 @@
-# Current Feature
+# Current Feature: Rate Limiting for Auth
 
-<!-- One or two sentences describing the feature currently being worked on. -->
-
-_No feature currently in progress. Last shipped: **Profile Page** (2026-08-06) — see History below._
+Rate-limit the authentication endpoints to stop brute-force / credential-stuffing and email-send abuse. Addresses the 5 High findings in `docs/audit-results/AUTH_SECURITY_REVIEW.md` (no throttling on auth routes).
 
 ## Status
 
-Complete — Profile Page merged 2026-08-06. Awaiting the next feature.
+In Progress
 
 ## Goals
 
-<!-- What this feature needs to accomplish. Replace with concrete goals when the next feature starts. -->
-
--
+- Add sliding-window rate limiting to the auth API routes using Upstash Redis (`@upstash/ratelimit`).
+- Create a reusable `src/lib/rate-limit.ts` utility: key by IP (from `x-forwarded-for`) + optional email; returns `{ success, remaining, reset }`.
+- Enforce per-endpoint limits: login `/api/auth/callback/credentials` 5 / 15 min (IP+email), register 3 / 1 h (IP), forgot-password 3 / 1 h (IP), reset-password 5 / 15 min (IP), resend-verification 3 / 15 min (IP+email).
+- Return `429` with a `Retry-After` header and JSON `{ error: "Too many attempts. Please try again in X minutes." }`.
+- Surface a user-friendly error on the frontend (toast).
+- Fail open (allow the request) when Upstash is unavailable.
 
 ## Notes
 
-<!-- Scope, references, constraints, and anything worth remembering. -->
-
--
+- New env vars: `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` (add to `.env`, `.env.production`, `.env.example`). Upstash free tier = 10k req/day.
+- Login limiting is tricky with NextAuth credentials — may need a custom sign-in handler; consider rate-limit middleware for a cleaner pass later.
+- Scope gap: there is currently **no** `resend-verification` route in the app (auth routes today: `[...nextauth]`, `register`, `forgot-password`, `reset-password`, `verify-email`) — either add it as part of this work or drop it from scope.
+- Spec: `context/features/rate-limiting-spec.md`.
 
 ## History
 
