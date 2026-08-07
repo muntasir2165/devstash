@@ -107,12 +107,13 @@ erDiagram
 // schema.prisma — DevStash
 
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL") // Neon
+  // DATABASE_URL is configured in prisma.config.ts (Prisma 7), not in this block.
 }
 
 // ─── Enums ─────────────────────────────────────────────
@@ -129,6 +130,7 @@ model User {
   email                String?      @unique
   emailVerified        DateTime?
   image                String?
+  hashedPassword       String?      // email/password (credentials) sign-in
 
   // Billing
   isPro                Boolean      @default(false)

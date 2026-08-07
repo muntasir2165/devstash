@@ -2,13 +2,15 @@
 
 <!-- One or two sentences describing the feature currently being worked on. -->
 
+_No feature currently in progress. Last shipped: **Profile Page** (2026-08-06) — see History below._
+
 ## Status
 
-Not started
+Complete — Profile Page merged 2026-08-06. Awaiting the next feature.
 
 ## Goals
 
-<!-- What this feature needs to accomplish. Replace with concrete goals. -->
+<!-- What this feature needs to accomplish. Replace with concrete goals when the next feature starts. -->
 
 -
 

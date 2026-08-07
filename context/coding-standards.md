@@ -51,7 +51,7 @@ Example v4 configuration:
 
 - Components: `src/components/[feature]/ComponentName.tsx`
 - Pages: `src/app/[route]/page.tsx`
-- Server Actions: `src/actions/[feature].ts`
+- Server Actions: `src/lib/[feature]-actions.ts`
 - Types: `src/types/[feature].ts`
 - Lib/Utils: `src/lib/[utility].ts`
 
@@ -81,7 +81,7 @@ Example v4 configuration:
 
 - Server components fetch directly with Prisma
 - Client components use Server Actions
-- Validate all inputs with Zod
+- Validate all inputs on the server (currently manual `typeof` + regex checks in route handlers / server actions; Zod not in use)
 
 ## Error Handling
 
