@@ -1,22 +1,21 @@
-# Current Feature
+# Current Feature: Three-Column Items Grid
 
-<!-- One or two sentences describing the feature currently being worked on. -->
+Widen the `/items/[type]` list from a two-column to a three-column card grid on large screens, staying responsive.
 
 ## Status
 
-Not Started
+In Progress
 
 ## Goals
 
-<!-- What this feature needs to accomplish. Replace with concrete goals. -->
-
--
+- Change the item grid on `/items/[type]` from 2 columns to **3 columns on large screens**.
+- Keep it responsive: 1 column (mobile) → 2 (`md`) → 3 (`lg`+).
+- No data/logic changes — a Tailwind grid class tweak only; keep reusing `ItemCard`.
 
 ## Notes
 
-<!-- Scope, references, constraints, and anything worth remembering. -->
-
--
+- Target file: `src/app/items/[type]/page.tsx`. Current grid is `grid gap-4 md:grid-cols-2` → e.g. `grid gap-4 md:grid-cols-2 lg:grid-cols-3`.
+- CSS-only change — no server-action/utility logic, so no unit tests needed. Verify responsiveness in the browser at sm/md/lg widths.
 
 ## History
 
