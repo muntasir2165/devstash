@@ -1,22 +1,26 @@
-# Current Feature
+# Current Feature: Items List View
 
-<!-- One or two sentences describing the feature currently being worked on. -->
+A dynamic `/items/[type]` page that lists a single item type's items in a responsive, type-colored card grid. Implements the **read/list** slice of `docs/item-crud-architecture.md`.
 
 ## Status
 
-Not Started
+In Progress
 
 ## Goals
 
-<!-- What this feature needs to accomplish. Replace with concrete goals. -->
-
--
+- Add a dynamic route `src/app/items/[type]/page.tsx` (async Server Component, `force-dynamic`).
+- Add `getItemsByType(slug)` to `src/lib/db/items.ts` and fetch there (called directly from the page — no API route), reusing the existing `itemCardSelect` + `ItemSummary` mapper.
+- Validate the `[type]` slug against the system item types; unknown → `notFound()`.
+- Render a responsive `ItemCard` grid: 1 column on mobile, **2 columns on `md`+**.
+- Each card keeps its **left border colored by the item type** — reuse `src/components/dashboard/ItemCard.tsx`.
+- Follow existing patterns (Server Component + `lib/db`, no new deps).
 
 ## Notes
 
-<!-- Scope, references, constraints, and anything worth remembering. -->
-
--
+- Scope: **read/list only** — create/update/delete are out of scope (full design in `docs/item-crud-architecture.md`).
+- Slug is the **singular** DB type name (`snippet`, `note`, …), matching `getSidebarItemTypes().slug` and the sidebar's existing `/items/${slug}` links. The spec's plural examples (`/items/snippets`) are illustrative — use the singular slug.
+- Seeded data has items for snippet/prompt/command/note/link; file/image (Pro) have none → those pages render an empty state.
+- Spec: `context/features/item-list-view-spec.md`.
 
 ## History
 

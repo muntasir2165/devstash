@@ -142,3 +142,41 @@ export async function getSidebarItemTypes(): Promise<SidebarItemType[]> {
       (a, b) => orderOf(a.name) - orderOf(b.name) || a.name.localeCompare(b.name),
     );
 }
+
+/** A system item type resolved from its `/items/[type]` URL slug. */
+export interface ItemTypeBySlug {
+  id: string;
+  name: string;
+  slug: string;
+  icon: string;
+  color: string;
+}
+
+/** Resolve a `/items/[type]` slug (lowercased type name) to its system type, or null. */
+export async function getItemTypeBySlug(
+  slug: string,
+): Promise<ItemTypeBySlug | null> {
+  const type = await prisma.itemType.findFirst({
+    where: { isSystem: true, name: { equals: slug, mode: "insensitive" } },
+    select: { id: true, name: true, icon: true, color: true },
+  });
+  if (!type) return null;
+  return {
+    id: type.id,
+    name: type.name,
+    slug: type.name.toLowerCase(),
+    icon: type.icon,
+    color: type.color,
+  };
+}
+
+/** Fetch all items of a given type (by id), most recently created first. */
+export async function getItemsByType(typeId: string): Promise<ItemSummary[]> {
+  const items = await prisma.item.findMany({
+    where: { itemTypeId: typeId },
+    orderBy: { createdAt: "desc" },
+    select: itemCardSelect,
+  });
+
+  return items.map(toItemSummary);
+}
