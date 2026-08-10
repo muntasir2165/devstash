@@ -23,6 +23,7 @@ Read the following to get the full context of the project:
 - **Build**: `npm run build`
 - **Production server**: `npm run start`
 - **Lint**: `npm run lint`
+- **Test**: `npm test` (Vitest — unit tests for server actions + utilities only; watch: `npm run test:watch`)
 
 ## Neon MCP / Database
 
