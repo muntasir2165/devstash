@@ -1,21 +1,22 @@
-# Current Feature: Three-Column Items Grid
+# Current Feature
 
-Widen the `/items/[type]` list from a two-column to a three-column card grid on large screens, staying responsive.
+<!-- One or two sentences describing the feature currently being worked on. -->
 
 ## Status
 
-In Progress
+Not Started
 
 ## Goals
 
-- Change the item grid on `/items/[type]` from 2 columns to **3 columns on large screens**.
-- Keep it responsive: 1 column (mobile) → 2 (`md`) → 3 (`lg`+).
-- No data/logic changes — a Tailwind grid class tweak only; keep reusing `ItemCard`.
+<!-- What this feature needs to accomplish. Replace with concrete goals. -->
+
+-
 
 ## Notes
 
-- Target file: `src/app/items/[type]/page.tsx`. Current grid is `grid gap-4 md:grid-cols-2` → e.g. `grid gap-4 md:grid-cols-2 lg:grid-cols-3`.
-- CSS-only change — no server-action/utility logic, so no unit tests needed. Verify responsiveness in the browser at sm/md/lg widths.
+<!-- Scope, references, constraints, and anything worth remembering. -->
+
+-
 
 ## History
 
@@ -44,3 +45,4 @@ In Progress
 - **2026-08-06 — Profile Page.** On branch `feature/profile-page`. Added a protected `/profile` page showing the signed-in user's info (avatar via `UserAvatar`, name, email, "member since" from `User.createdAt`), usage stats (total items, total collections, and a per-type breakdown of the 7 system item types), and account actions. **Route protection** is doubled up: the `proxy` matcher now covers `/profile/:path*` (redirecting to `/sign-in?callbackUrl=/profile`) and the page also guards via `auth()`. Added `src/lib/db/profile.ts` (`getProfileStats(userId)` — user-scoped counts using Prisma **filtered `_count`** relations so the breakdown reflects only the current user's items) and `src/lib/profile-actions.ts` server actions: `changePassword` (bcrypt-compares the current password, rejects GitHub-only accounts / mismatches / unchanged passwords, then hashes the new one at 12 rounds) and `deleteAccount` (deletes the user + all owned content in the proven FK-safe order — items → collections → custom item types → tags → sessions → accounts → user → tokens, preserving null-owned system types — then signs out to `/sign-in?deleted=1`). New client components `ChangePasswordForm` (`useActionState`) and `DeleteAccountDialog` (installed the shadcn **alert-dialog**, confirm via `useFormStatus`); the change-password card only renders for accounts with a `hashedPassword`. Added a `deleted` success banner to the sign-in `BANNERS` map. No schema change → no migration. `npm run build` and `npm run lint` pass; verified on the Neon dev branch (16/16 DB checks: stats scoped correctly with the custom-type item excluded from the system-type breakdown, bcrypt change-password logic, and the delete cascade removing the user + content while preserving system types) plus curl (`/profile` unauthenticated → `302 /sign-in?callbackUrl=%2Fprofile`; authenticated render `200` with all sections). Server actions can't be exercised via curl, so those are covered by the type-check + the DB-level logic checks.
 - **2026-08-07 — Rate Limiting for Auth.** On branch `feature/rate-limiting` (now merged). Added Upstash sliding-window rate limiting across the auth surface — closes the 5 High "no rate limiting" findings in `docs/audit-results/AUTH_SECURITY_REVIEW.md` (verified the current `@upstash/ratelimit` v2 API before writing code). Installed `@upstash/ratelimit` + `@upstash/redis`; new `src/lib/rate-limit.ts` builds one sliding-window limiter per endpoint (separate Redis `prefix`es) and exposes `checkRateLimit` (**fails open** when the Upstash env vars are unset or Redis errors), `getClientIp` (first `x-forwarded-for`), `rateLimitMessage`, and `tooManyRequests` (429 + `Retry-After` header + JSON `{ error }`). Limits: login 5 / 15 min (IP+email), register 3 / 1 h (IP), forgot-password 3 / 1 h (IP), reset-password 5 / 15 min (IP). Register/forgot/reset are gated in their route handlers; **login is gated inside the credentials `authorize`** (reads `headers()` for the IP) so direct POSTs to `/api/auth/callback/credentials` are covered too — it throws a `RateLimitedError` (`code="rate_limited"`) that `credentialsSignIn` maps to a friendly message (the earlier server-action-only check was removed to avoid double-counting the same window — caught in `feature review`). Documented `UPSTASH_REDIS_REST_URL`/`UPSTASH_REDIS_REST_TOKEN` in `.env.example` (unset → disabled/fail-open; add real values to `.env`/`.env.production` to enforce). No schema change → no migration. `npm run build` and `npm run lint` pass. Deferred: the spec's `resend-verification` limiter (no such route exists yet); `ForgotPasswordForm` keeps its neutral message on 429 (anti-enumeration); not yet runtime-tested against a real Upstash instance (needs creds).
 - **2026-08-09 — Items List View.** On branch `feature/items-list-view` (now merged). Shipped the read/list slice of the item CRUD design (`docs/item-crud-architecture.md`): a dynamic `/items/[type]` page. New `src/app/items/[type]/page.tsx` (async Server Component, `force-dynamic`) resolves the `[type]` slug via a new `getItemTypeBySlug` (case-insensitive, system types) → `notFound()` on miss, then lists that type's items via a new `getItemsByType(typeId)` (both added to `src/lib/db/items.ts`, reusing the existing `itemCardSelect`/`ItemSummary`/`toItemSummary`). Renders a header (`TypeIcon` + capitalized name + count) and a responsive `ItemCard` grid (1 col mobile, `md:grid-cols-2`); `ItemCard` reused as-is (already draws the type-colored `border-l-4`), with an empty state for types that have no items (e.g. Pro file/image). Protected `/items` in `src/proxy.ts` (guard + matcher) to match `/dashboard` + `/profile`. Uses the **singular** slug (`/items/snippet`, matching the sidebar links; the spec's plural was illustrative). No new deps, no schema change → no migration. `npm run build` + `npm run lint` pass (new route builds as dynamic). Not yet browser-tested. Deferred (from `feature review`): `getItemsByType` is unbounded (no `take`/pagination) and not user-scoped — consistent with the existing global dashboard db layer; no per-page `<title>`; page is standalone (no dashboard sidebar).
+- **2026-08-09 — Three-Column Items Grid.** On branch `feature/three-column-items-grid` (merged). Widened the `/items/[type]` list grid from 2 to 3 columns on large screens — `src/app/items/[type]/page.tsx` grid class `md:grid-cols-2` → `md:grid-cols-2 lg:grid-cols-3` (responsive: 1 col mobile → 2 at `md` → 3 at `lg`+), still reusing `ItemCard`. CSS-only — no data/logic change, no migration; `feature test` found no server-action/utility logic to cover (Vitest suite still 6/6). `npm run build` + `npm run lint` pass. Not browser-verified. Branched off `main` before the `chore: add test action` skill commit, so it merged via a merge commit rather than fast-forward.
