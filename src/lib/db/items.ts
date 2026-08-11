@@ -253,3 +253,54 @@ export async function getItemDetail(
     collections: item.collections.map((entry) => entry.collection),
   };
 }
+
+/** Fields the drawer's edit mode can change. */
+export interface UpdateItemData {
+  title: string;
+  description?: string | null;
+  content?: string | null;
+  url?: string | null;
+  language?: string | null;
+  tags?: string[];
+}
+
+/**
+ * Update an item the user owns and return its refreshed detail.
+ * Returns null when the item doesn't exist or isn't owned by `userId`.
+ */
+export async function updateItem(
+  id: string,
+  userId: string,
+  data: UpdateItemData,
+): Promise<ItemDetail | null> {
+  const owned = await prisma.item.findFirst({
+    where: { id, userId },
+    select: { id: true },
+  });
+  if (!owned) return null;
+
+  await prisma.item.update({
+    where: { id },
+    data: {
+      title: data.title,
+      description: data.description,
+      content: data.content,
+      url: data.url,
+      language: data.language,
+      ...(data.tags
+        ? {
+            // Replace the tag set: drop all links, then reuse/create per user.
+            tags: {
+              set: [],
+              connectOrCreate: data.tags.map((name) => ({
+                where: { name_userId: { name, userId } },
+                create: { name, userId },
+              })),
+            },
+          }
+        : {}),
+    },
+  });
+
+  return getItemDetail(id, userId);
+}

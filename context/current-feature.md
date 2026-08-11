@@ -1,22 +1,29 @@
-# Current Feature
+# Current Feature: Item Drawer — Edit Mode
 
-<!-- One or two sentences describing the feature currently being worked on. -->
+Clicking Edit (pencil) in the item drawer switches the same drawer inline from view mode to editable inputs, with Save/Cancel and a validated server-action update.
 
 ## Status
 
-Not Started
+In Progress
 
 ## Goals
 
-<!-- What this feature needs to accomplish. Replace with concrete goals. -->
-
--
+- Toggle the drawer between view and edit mode; in edit mode the action bar is replaced by **Save** and **Cancel**. Cancel discards; Save persists, returns to view mode, and refreshes the drawer data.
+- Toast on save success/error.
+- Editable for all types: **Title** (required), **Description** (textarea), **Tags** (comma-separated → array on save). Type-specific: **Content** (snippet/prompt/command/note), **Language** (snippet/command), **URL** (link).
+- Display-only in edit mode: item type, collections, created/updated dates.
+- Add a `updateItem(itemId, data)` **server action** that validates with **Zod**, calls `auth()`, verifies ownership, then the query — returning `{ success, data, error }` with Zod errors surfaced to the client.
+- Add an `updateItem` query in `src/lib/db/items.ts`: tags disconnect-all then connect-or-create; returns the updated `ItemDetail` so the drawer refreshes without a second fetch.
+- Client: controlled inputs + local state (no form library); Save disabled when title is empty; `router.refresh()` after save so the card list reflects changes.
 
 ## Notes
 
-<!-- Scope, references, constraints, and anything worth remembering. -->
-
--
+- ✅ **Decided (2026-08-10):** use **Zod** — add the `zod` dependency and update `context/coding-standards.md` to say Zod validates server-action inputs (it previously recorded manual validation).
+- ✅ **Decided:** action lives at **`src/lib/item-actions.ts`** (repo convention `src/lib/[feature]-actions.ts`, per `docs/item-crud-architecture.md`), not the spec's `src/actions/items.ts`.
+- ✅ **Decided:** use a real **toast** — install the shadcn toast component via the CLI (Base UI / `base-nova`, never hand-write).
+- Validation must stay server-side authoritative; ownership check scoped to `session.user.id` (anti-IDOR), matching the existing `getItemDetail` pattern.
+- Content textarea is plain — the code editor comes later.
+- Spec: `context/features/item-drawer-edit-spec.md`.
 
 ## History
 

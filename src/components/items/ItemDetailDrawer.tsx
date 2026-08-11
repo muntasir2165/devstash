@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import {
   Calendar,
   Copy,
@@ -20,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { TypeIcon } from "@/components/dashboard/TypeIcon";
+import { ItemEditForm } from "./ItemEditForm";
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-US", {
@@ -51,6 +53,9 @@ export function ItemDetailDrawer({
     id: string;
     item: ItemDetail | null;
   } | null>(null);
+  // Tracked by id so opening another item always starts back in view mode.
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     if (!open || !itemId) return;
@@ -70,6 +75,7 @@ export function ItemDetailDrawer({
 
   const item = loaded && loaded.id === itemId ? loaded.item : null;
   const loading = open && itemId != null && loaded?.id !== itemId;
+  const editing = item != null && editingId === item.id;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -84,7 +90,22 @@ export function ItemDetailDrawer({
         {loading ? (
           <DrawerSkeleton />
         ) : item ? (
-          <DrawerBody item={item} />
+          editing ? (
+            <div className="p-5">
+              <ItemEditForm
+                item={item}
+                onCancel={() => setEditingId(null)}
+                onSaved={(updated) => {
+                  setLoaded({ id: updated.id, item: updated });
+                  setEditingId(null);
+                  // Keep the underlying card list in sync with the edit.
+                  router.refresh();
+                }}
+              />
+            </div>
+          ) : (
+            <DrawerBody item={item} onEdit={() => setEditingId(item.id)} />
+          )
         ) : (
           <p className="p-6 text-sm text-muted-foreground">
             Couldn&apos;t load this item.
@@ -95,7 +116,13 @@ export function ItemDetailDrawer({
   );
 }
 
-function DrawerBody({ item }: { item: ItemDetail }) {
+function DrawerBody({
+  item,
+  onEdit,
+}: {
+  item: ItemDetail;
+  onEdit: () => void;
+}) {
   const size = formatSize(item.fileSize);
   const copyText = item.content ?? item.url ?? "";
 
@@ -134,7 +161,7 @@ function DrawerBody({ item }: { item: ItemDetail }) {
         </Button>
         <CopyButton text={copyText} />
         <div className="ml-auto flex items-center gap-1">
-          <Button variant="ghost" size="sm" className="gap-1.5">
+          <Button variant="ghost" size="sm" className="gap-1.5" onClick={onEdit}>
             <Pencil className="size-4" />
             Edit
           </Button>

@@ -1,13 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/prisma", () => ({
-  prisma: { item: { findFirst: vi.fn() } },
+  prisma: { item: { findFirst: vi.fn(), update: vi.fn() } },
 }));
 
 import { prisma } from "@/lib/prisma";
-import { getItemDetail } from "@/lib/db/items";
+import { getItemDetail, updateItem } from "@/lib/db/items";
 
 const findFirst = vi.mocked(prisma.item.findFirst);
+const update = vi.mocked(prisma.item.update);
 
 beforeEach(() => vi.clearAllMocks());
 
@@ -55,5 +56,53 @@ describe("getItemDetail", () => {
       tags: ["react", "hooks"],
       collections: [{ id: "col-1", name: "React Patterns" }],
     });
+  });
+});
+
+describe("updateItem", () => {
+  it("returns null and skips the write when the user doesn't own the item", async () => {
+    findFirst.mockResolvedValue(null as never);
+    await expect(
+      updateItem("item-1", "user-1", { title: "New" }),
+    ).resolves.toBeNull();
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it("replaces the tag set with per-user connect-or-create", async () => {
+    // First call = ownership check, second = the getItemDetail refresh.
+    findFirst
+      .mockResolvedValueOnce({ id: "item-1" } as never)
+      .mockResolvedValueOnce(null as never);
+
+    await updateItem("item-1", "user-1", { title: "New", tags: ["react"] });
+
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "item-1" },
+        data: expect.objectContaining({
+          title: "New",
+          tags: {
+            set: [],
+            connectOrCreate: [
+              {
+                where: { name_userId: { name: "react", userId: "user-1" } },
+                create: { name: "react", userId: "user-1" },
+              },
+            ],
+          },
+        }),
+      }),
+    );
+  });
+
+  it("leaves tags untouched when none are provided", async () => {
+    findFirst
+      .mockResolvedValueOnce({ id: "item-1" } as never)
+      .mockResolvedValueOnce(null as never);
+
+    await updateItem("item-1", "user-1", { title: "New" });
+
+    const data = update.mock.calls[0]?.[0]?.data as Record<string, unknown>;
+    expect(data).not.toHaveProperty("tags");
   });
 });

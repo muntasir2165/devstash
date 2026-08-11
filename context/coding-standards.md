@@ -81,7 +81,7 @@ Example v4 configuration:
 
 - Server components fetch directly with Prisma
 - Client components use Server Actions
-- Validate all inputs on the server (currently manual `typeof` + regex checks in route handlers / server actions; Zod not in use)
+- Validate Server Action / route-handler inputs on the server with **Zod** (schema + `safeParse`, return the error in the `{ success, error }` response). Some older auth route handlers still use manual `typeof`/regex checks.
 
 ## Error Handling
 
