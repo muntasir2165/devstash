@@ -1,25 +1,22 @@
-# Current Feature: Item Drawer
+# Current Feature
 
-A right-side slide-in drawer (shadcn `Sheet`) that opens on ItemCard click to show an item's full detail — the item detail view, with no separate page. Detail-display slice of `docs/item-crud-architecture.md`.
+<!-- One or two sentences describing the feature currently being worked on. -->
 
 ## Status
 
-In Progress
+Not Started
 
 ## Goals
 
-- Add a right-side `Sheet` drawer that opens when an `ItemCard` is clicked and shows that item's full detail; works on **both** the dashboard and `/items/[type]` pages.
-- Add a **client wrapper** to own the drawer open/selected state (the pages are Server Components); card data keeps coming from the server component.
-- Fetch full detail (content, collections, language, etc.) **on click** via a new `GET /api/items/[id]` route that calls a new query in `src/lib/db/items.ts` with a session/auth check. Show a skeleton while loading; no page navigation.
-- Action bar: Favorite (star, yellow when active), Pin, Copy, Edit (pencil), Delete (trash, right-aligned) — layout per the screenshot.
+<!-- What this feature needs to accomplish. Replace with concrete goals. -->
+
+-
 
 ## Notes
 
-- **Scope:** drawer detail *display* only. Defer the code editor and item-type-specific editing/extras; action-bar buttons are UI-only for now.
-- **Reference:** `context/screenshots/dashboard-ui-drawer.png` (action-bar layout + visual design) — review before implementing.
-- shadcn `Sheet` already exists at `src/components/ui/sheet.tsx`.
-- Intentional pattern deviation: detail is fetched **client-side via the API route** on click (not the usual "server component fetches directly") for the snappy, no-nav UX the spec calls for. The route must verify the session and prevent IDOR (`where: { id, userId }`).
-- Spec: `context/features/item-drawer-spec.md`.
+<!-- Scope, references, constraints, and anything worth remembering. -->
+
+-
 
 ## History
 
@@ -49,3 +46,4 @@ In Progress
 - **2026-08-07 — Rate Limiting for Auth.** On branch `feature/rate-limiting` (now merged). Added Upstash sliding-window rate limiting across the auth surface — closes the 5 High "no rate limiting" findings in `docs/audit-results/AUTH_SECURITY_REVIEW.md` (verified the current `@upstash/ratelimit` v2 API before writing code). Installed `@upstash/ratelimit` + `@upstash/redis`; new `src/lib/rate-limit.ts` builds one sliding-window limiter per endpoint (separate Redis `prefix`es) and exposes `checkRateLimit` (**fails open** when the Upstash env vars are unset or Redis errors), `getClientIp` (first `x-forwarded-for`), `rateLimitMessage`, and `tooManyRequests` (429 + `Retry-After` header + JSON `{ error }`). Limits: login 5 / 15 min (IP+email), register 3 / 1 h (IP), forgot-password 3 / 1 h (IP), reset-password 5 / 15 min (IP). Register/forgot/reset are gated in their route handlers; **login is gated inside the credentials `authorize`** (reads `headers()` for the IP) so direct POSTs to `/api/auth/callback/credentials` are covered too — it throws a `RateLimitedError` (`code="rate_limited"`) that `credentialsSignIn` maps to a friendly message (the earlier server-action-only check was removed to avoid double-counting the same window — caught in `feature review`). Documented `UPSTASH_REDIS_REST_URL`/`UPSTASH_REDIS_REST_TOKEN` in `.env.example` (unset → disabled/fail-open; add real values to `.env`/`.env.production` to enforce). No schema change → no migration. `npm run build` and `npm run lint` pass. Deferred: the spec's `resend-verification` limiter (no such route exists yet); `ForgotPasswordForm` keeps its neutral message on 429 (anti-enumeration); not yet runtime-tested against a real Upstash instance (needs creds).
 - **2026-08-09 — Items List View.** On branch `feature/items-list-view` (now merged). Shipped the read/list slice of the item CRUD design (`docs/item-crud-architecture.md`): a dynamic `/items/[type]` page. New `src/app/items/[type]/page.tsx` (async Server Component, `force-dynamic`) resolves the `[type]` slug via a new `getItemTypeBySlug` (case-insensitive, system types) → `notFound()` on miss, then lists that type's items via a new `getItemsByType(typeId)` (both added to `src/lib/db/items.ts`, reusing the existing `itemCardSelect`/`ItemSummary`/`toItemSummary`). Renders a header (`TypeIcon` + capitalized name + count) and a responsive `ItemCard` grid (1 col mobile, `md:grid-cols-2`); `ItemCard` reused as-is (already draws the type-colored `border-l-4`), with an empty state for types that have no items (e.g. Pro file/image). Protected `/items` in `src/proxy.ts` (guard + matcher) to match `/dashboard` + `/profile`. Uses the **singular** slug (`/items/snippet`, matching the sidebar links; the spec's plural was illustrative). No new deps, no schema change → no migration. `npm run build` + `npm run lint` pass (new route builds as dynamic). Not yet browser-tested. Deferred (from `feature review`): `getItemsByType` is unbounded (no `take`/pagination) and not user-scoped — consistent with the existing global dashboard db layer; no per-page `<title>`; page is standalone (no dashboard sidebar).
 - **2026-08-09 — Three-Column Items Grid.** On branch `feature/three-column-items-grid` (merged). Widened the `/items/[type]` list grid from 2 to 3 columns on large screens — `src/app/items/[type]/page.tsx` grid class `md:grid-cols-2` → `md:grid-cols-2 lg:grid-cols-3` (responsive: 1 col mobile → 2 at `md` → 3 at `lg`+), still reusing `ItemCard`. CSS-only — no data/logic change, no migration; `feature test` found no server-action/utility logic to cover (Vitest suite still 6/6). `npm run build` + `npm run lint` pass. Not browser-verified. Branched off `main` before the `chore: add test action` skill commit, so it merged via a merge commit rather than fast-forward.
+- **2026-08-10 — Item Drawer.** On branch `feature/item-drawer` (merged). Added the item detail view as a right-side slide-in drawer (shadcn `Sheet`) that opens on `ItemCard` click — the read/detail slice of `docs/item-crud-architecture.md`, no separate item page. New `getItemDetail(id, userId)` in `src/lib/db/items.ts` (owner-scoped `where:{id,userId}` → anti-IDOR; dates → ISO; tags/collections shaped) is called by a new `GET /api/items/[id]` route (`auth()` → 401, not-found/not-owned → 404, else JSON). Client `ItemDrawerProvider` (context owns open/selected state so the pages stay Server Components) + `ItemCardTrigger` (clickable card) + `ItemDetailDrawer` (fetch-on-open via the API route, skeleton while loading, then header + action bar + Description/Content/URL/File + Tags + Collections + Details). Detail is **keyed by id** so there's no stale flash and all `setState` runs in async callbacks (satisfies the React Compiler `set-state-in-effect` rule). Wired the dashboard + `/items/[type]` pages (provider + triggers). Intentional deviation from "server components fetch directly": detail is fetched client-side on click for snappy no-nav UX, per the spec. Scope = display only: Copy works (clipboard), Favorite/Pin reflect state, Edit/Delete render but are **not wired yet** (mutations + code editor deferred). Tests (`feature test`): `getItemDetail` (owner-scope / null / shaping) + the `GET` handler (401/404/200) — suite 12/12. `npm run build` + `npm run lint` pass; drawer open verified in the browser. Note: dashboard collection cards still 404 (their route isn't built) — pre-existing and unrelated.
