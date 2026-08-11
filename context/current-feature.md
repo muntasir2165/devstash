@@ -1,22 +1,26 @@
-# Current Feature
+# Current Feature: Delete Item
 
-<!-- One or two sentences describing the feature currently being worked on. -->
+Wire the item drawer's Delete button: a shadcn confirmation dialog, an owner-scoped delete server action, and a success toast.
 
 ## Status
 
-Not Started
+In Progress
 
 ## Goals
 
-<!-- What this feature needs to accomplish. Replace with concrete goals. -->
-
--
+- Clicking **Delete** (trash) in the drawer's action bar opens a shadcn **AlertDialog** confirmation naming the item; cancelling makes no change.
+- Confirming calls a new `deleteItem(itemId)` **server action** in `src/lib/item-actions.ts`: `auth()` → owner-scoped delete → `{ success, error }`.
+- Add a `deleteItem(id, userId)` query in `src/lib/db/items.ts` that only deletes an item the user owns (returns false otherwise → no IDOR).
+- On success: **toast** confirmation, close the drawer, and `router.refresh()` so the card lists drop the item. On failure: error toast, drawer stays open.
+- Unit tests for the new action + query (happy path, not-signed-in, not-owned).
 
 ## Notes
 
-<!-- Scope, references, constraints, and anything worth remembering. -->
-
--
+- `alert-dialog` and `sonner` are already installed — reuse them; follow the `DeleteAccountDialog` pattern (`src/components/profile/DeleteAccountDialog.tsx`).
+- The Delete button already exists in `ItemDetailDrawer`'s action bar but is currently inert.
+- Verify FK behavior before deleting: `Item` is referenced by the `ItemCollection` join table and has an implicit m2m to `Tag`. Check `prisma/schema.prisma` for cascade vs. restrict and clean up join rows explicitly if needed (the `deleteAccount` action's FK-safe ordering is the precedent).
+- Deleting is destructive and irreversible — confirmation copy should say so; no schema change expected → no migration.
+- Follows the CRUD design in `docs/item-crud-architecture.md`.
 
 ## History
 

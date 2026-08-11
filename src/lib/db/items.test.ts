@@ -1,14 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/prisma", () => ({
-  prisma: { item: { findFirst: vi.fn(), update: vi.fn() } },
+  prisma: { item: { findFirst: vi.fn(), update: vi.fn(), deleteMany: vi.fn() } },
 }));
 
 import { prisma } from "@/lib/prisma";
-import { getItemDetail, updateItem } from "@/lib/db/items";
+import { deleteItem, getItemDetail, updateItem } from "@/lib/db/items";
 
 const findFirst = vi.mocked(prisma.item.findFirst);
 const update = vi.mocked(prisma.item.update);
+const deleteMany = vi.mocked(prisma.item.deleteMany);
 
 beforeEach(() => vi.clearAllMocks());
 
@@ -104,5 +105,25 @@ describe("updateItem", () => {
 
     const data = update.mock.calls[0]?.[0]?.data as Record<string, unknown>;
     expect(data).not.toHaveProperty("tags");
+  });
+});
+
+describe("deleteItem", () => {
+  it("scopes the delete to the owner", async () => {
+    deleteMany.mockResolvedValue({ count: 1 } as never);
+    await deleteItem("item-1", "user-1");
+    expect(deleteMany).toHaveBeenCalledWith({
+      where: { id: "item-1", userId: "user-1" },
+    });
+  });
+
+  it("returns true when a row was removed", async () => {
+    deleteMany.mockResolvedValue({ count: 1 } as never);
+    await expect(deleteItem("item-1", "user-1")).resolves.toBe(true);
+  });
+
+  it("returns false when the item is missing or not owned", async () => {
+    deleteMany.mockResolvedValue({ count: 0 } as never);
+    await expect(deleteItem("item-1", "user-2")).resolves.toBe(false);
   });
 });

@@ -304,3 +304,12 @@ export async function updateItem(
 
   return getItemDetail(id, userId);
 }
+
+/**
+ * Delete an item the user owns. Returns false when it doesn't exist or isn't theirs.
+ * Collection links cascade; implicit tag links are cleaned up by Prisma.
+ */
+export async function deleteItem(id: string, userId: string): Promise<boolean> {
+  const { count } = await prisma.item.deleteMany({ where: { id, userId } });
+  return count > 0;
+}

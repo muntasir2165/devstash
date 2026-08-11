@@ -3,7 +3,11 @@
 import { z } from "zod";
 
 import { auth } from "@/auth";
-import { updateItem as updateItemQuery, type ItemDetail } from "@/lib/db/items";
+import {
+  deleteItem as deleteItemQuery,
+  updateItem as updateItemQuery,
+  type ItemDetail,
+} from "@/lib/db/items";
 
 // Empty inputs come back from the form as "" — treat them as "no value".
 const emptyToNull = (value: unknown) =>
@@ -48,4 +52,21 @@ export async function updateItem(
   }
 
   return { success: true, data: item };
+}
+
+export type DeleteItemResult = { success: true } | { success: false; error: string };
+
+/** Permanently delete an item the signed-in user owns. */
+export async function deleteItem(itemId: string): Promise<DeleteItemResult> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { success: false, error: "You must be signed in." };
+  }
+
+  const deleted = await deleteItemQuery(itemId, session.user.id);
+  if (!deleted) {
+    return { success: false, error: "Item not found." };
+  }
+
+  return { success: true };
 }

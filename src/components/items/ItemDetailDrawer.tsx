@@ -10,7 +10,6 @@ import {
   Pin,
   Star,
   Tag,
-  Trash2,
   type LucideIcon,
 } from "lucide-react";
 
@@ -21,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { TypeIcon } from "@/components/dashboard/TypeIcon";
+import { DeleteItemDialog } from "./DeleteItemDialog";
 import { ItemEditForm } from "./ItemEditForm";
 
 function formatDate(iso: string) {
@@ -104,7 +104,14 @@ export function ItemDetailDrawer({
               />
             </div>
           ) : (
-            <DrawerBody item={item} onEdit={() => setEditingId(item.id)} />
+            <DrawerBody
+              item={item}
+              onEdit={() => setEditingId(item.id)}
+              onDeleted={() => {
+                onOpenChange(false);
+                router.refresh();
+              }}
+            />
           )
         ) : (
           <p className="p-6 text-sm text-muted-foreground">
@@ -119,9 +126,11 @@ export function ItemDetailDrawer({
 function DrawerBody({
   item,
   onEdit,
+  onDeleted,
 }: {
   item: ItemDetail;
   onEdit: () => void;
+  onDeleted: () => void;
 }) {
   const size = formatSize(item.fileSize);
   const copyText = item.content ?? item.url ?? "";
@@ -165,14 +174,11 @@ function DrawerBody({
             <Pencil className="size-4" />
             Edit
           </Button>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            className="text-destructive hover:text-destructive"
-            aria-label="Delete"
-          >
-            <Trash2 className="size-4" />
-          </Button>
+          <DeleteItemDialog
+            itemId={item.id}
+            itemTitle={item.title}
+            onDeleted={onDeleted}
+          />
         </div>
       </div>
 
