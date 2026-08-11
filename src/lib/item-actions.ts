@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { auth } from "@/auth";
 import {
+  createItem as createItemQuery,
   deleteItem as deleteItemQuery,
   updateItem as updateItemQuery,
   type ItemDetail,
@@ -69,4 +70,56 @@ export async function deleteItem(itemId: string): Promise<DeleteItemResult> {
   }
 
   return { success: true };
+}
+
+/** Types creatable from the New Item dialog (file/image are Pro upload types). */
+export const CREATABLE_ITEM_TYPES = [
+  "snippet",
+  "prompt",
+  "command",
+  "note",
+  "link",
+] as const;
+
+const createItemSchema = z
+  .object({
+    type: z.enum(CREATABLE_ITEM_TYPES),
+    title: z.string().trim().min(1, "Title is required"),
+    description: z.preprocess(emptyToNull, z.string().trim().nullable()),
+    content: z.preprocess(emptyToNull, z.string().nullable()),
+    url: z.preprocess(emptyToNull, z.url("Enter a valid URL").nullable()),
+    language: z.preprocess(emptyToNull, z.string().trim().nullable()),
+    tags: z.array(z.string().trim().min(1)),
+  })
+  .refine((data) => data.type !== "link" || data.url !== null, {
+    path: ["url"],
+    error: "A link needs a URL",
+  });
+
+export type CreateItemInput = z.input<typeof createItemSchema>;
+
+export type CreateItemResult =
+  | { success: true; data: ItemDetail }
+  | { success: false; error: string };
+
+/** Create an item owned by the signed-in user. */
+export async function createItem(
+  input: CreateItemInput,
+): Promise<CreateItemResult> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { success: false, error: "You must be signed in." };
+  }
+
+  const parsed = createItemSchema.safeParse(input);
+  if (!parsed.success) {
+    return { success: false, error: z.prettifyError(parsed.error) };
+  }
+
+  const item = await createItemQuery(session.user.id, parsed.data);
+  if (!item) {
+    return { success: false, error: "Unknown item type." };
+  }
+
+  return { success: true, data: item };
 }

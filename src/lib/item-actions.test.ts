@@ -1,18 +1,24 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/auth", () => ({ auth: vi.fn() }));
-vi.mock("@/lib/db/items", () => ({ updateItem: vi.fn(), deleteItem: vi.fn() }));
+vi.mock("@/lib/db/items", () => ({
+  updateItem: vi.fn(),
+  deleteItem: vi.fn(),
+  createItem: vi.fn(),
+}));
 
 import { auth } from "@/auth";
 import {
   updateItem as updateItemQuery,
   deleteItem as deleteItemQuery,
+  createItem as createItemQuery,
 } from "@/lib/db/items";
-import { deleteItem, updateItem } from "@/lib/item-actions";
+import { createItem, deleteItem, updateItem } from "@/lib/item-actions";
 
 const mockAuth = vi.mocked(auth);
 const mockQuery = vi.mocked(updateItemQuery);
 const mockDeleteQuery = vi.mocked(deleteItemQuery);
+const mockCreateQuery = vi.mocked(createItemQuery);
 
 const valid = {
   title: "Title",
@@ -93,5 +99,64 @@ describe("deleteItem action", () => {
     const result = await deleteItem("item-1");
     expect(mockDeleteQuery).toHaveBeenCalledWith("item-1", "user-1");
     expect(result).toEqual({ success: true });
+  });
+});
+
+describe("createItem action", () => {
+  const newSnippet = {
+    type: "snippet" as const,
+    title: "useDebounce",
+    description: "",
+    content: "code",
+    url: "",
+    language: "typescript",
+    tags: ["react"],
+  };
+
+  beforeEach(() => {
+    mockCreateQuery.mockResolvedValue({ id: "item-1" } as never);
+  });
+
+  it("rejects when there is no session and never touches the database", async () => {
+    mockAuth.mockResolvedValue(null as never);
+    const result = await createItem(newSnippet);
+    expect(result).toEqual({ success: false, error: "You must be signed in." });
+    expect(mockCreateQuery).not.toHaveBeenCalled();
+  });
+
+  it("rejects an empty title", async () => {
+    const result = await createItem({ ...newSnippet, title: "  " });
+    expect(result.success).toBe(false);
+    expect(mockCreateQuery).not.toHaveBeenCalled();
+  });
+
+  it("rejects a link without a URL", async () => {
+    const result = await createItem({
+      ...newSnippet,
+      type: "link",
+      url: "",
+    });
+    expect(result.success).toBe(false);
+    expect(mockCreateQuery).not.toHaveBeenCalled();
+  });
+
+  it("creates scoped to the session user with blanks normalized to null", async () => {
+    const result = await createItem(newSnippet);
+    expect(mockCreateQuery).toHaveBeenCalledWith(
+      "user-1",
+      expect.objectContaining({
+        type: "snippet",
+        title: "useDebounce",
+        description: null,
+        url: null,
+      }),
+    );
+    expect(result).toEqual({ success: true, data: { id: "item-1" } });
+  });
+
+  it("reports an unknown item type", async () => {
+    mockCreateQuery.mockResolvedValue(null);
+    const result = await createItem(newSnippet);
+    expect(result).toEqual({ success: false, error: "Unknown item type." });
   });
 });

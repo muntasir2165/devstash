@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { Prisma } from "@/generated/prisma/client";
+import { ContentType, Prisma } from "@/generated/prisma/client";
 
 /** An item shaped for the dashboard item cards. */
 export interface ItemSummary {
@@ -312,4 +312,57 @@ export async function updateItem(
 export async function deleteItem(id: string, userId: string): Promise<boolean> {
   const { count } = await prisma.item.deleteMany({ where: { id, userId } });
   return count > 0;
+}
+
+/** Fields needed to create an item from the "New Item" dialog. */
+export interface CreateItemData {
+  /** System item type name, e.g. "snippet". */
+  type: string;
+  title: string;
+  description?: string | null;
+  content?: string | null;
+  url?: string | null;
+  language?: string | null;
+  tags?: string[];
+}
+
+/**
+ * Create an item owned by `userId`, resolving the system type by name.
+ * Returns null when the type name doesn't match a system item type.
+ */
+export async function createItem(
+  userId: string,
+  data: CreateItemData,
+): Promise<ItemDetail | null> {
+  const itemType = await prisma.itemType.findFirst({
+    where: { isSystem: true, name: { equals: data.type, mode: "insensitive" } },
+    select: { id: true },
+  });
+  if (!itemType) return null;
+
+  const item = await prisma.item.create({
+    data: {
+      title: data.title,
+      description: data.description,
+      content: data.content,
+      url: data.url,
+      language: data.language,
+      contentType: data.url ? ContentType.URL : ContentType.TEXT,
+      userId,
+      itemTypeId: itemType.id,
+      ...(data.tags?.length
+        ? {
+            tags: {
+              connectOrCreate: data.tags.map((name) => ({
+                where: { name_userId: { name, userId } },
+                create: { name, userId },
+              })),
+            },
+          }
+        : {}),
+    },
+    select: { id: true },
+  });
+
+  return getItemDetail(item.id, userId);
 }

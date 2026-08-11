@@ -1,22 +1,30 @@
-# Current Feature
+# Current Feature: Item Create
 
-<!-- One or two sentences describing the feature currently being worked on. -->
+Create new items from a modal dialog opened by the top bar's "New Item" button, with a type selector and type-driven fields.
 
 ## Status
 
-Not Started
+In Progress
 
 ## Goals
 
-<!-- What this feature needs to accomplish. Replace with concrete goals. -->
-
--
+- Add a shadcn **Dialog** modal that opens from the existing "New Item" button in the top bar.
+- **Type selector** for the five free types: snippet, prompt, command, note, link.
+- Type-driven fields — all types: **title** (required), description, tags; snippet/command: content + language; prompt/note: content; link: **URL** (required).
+- Add a `createItem` **server action** in `src/lib/item-actions.ts` with **Zod** validation (mirrors `updateItem`: `auth()` → parse → query → `{ success, data, error }`).
+- Add a `createItem` query in `src/lib/db/items.ts` (owner-scoped create, tags connect-or-create, correct `contentType`).
+- On success: **toast**, close the modal, and refresh so the new item appears.
 
 ## Notes
 
-<!-- Scope, references, constraints, and anything worth remembering. -->
-
--
+- ⚠️ **Missing components:** `dialog` is not installed (only `alert-dialog` is), and there's no `select` for the type picker. Install both via `npx shadcn@latest add dialog select` (Base UI / `base-nova` — never hand-write).
+- The top bar's "New Item" button ([`src/components/dashboard/TopBar.tsx`]) is currently display-only — it needs wiring, and the dialog state must live in a client component since the pages are Server Components.
+- `itemTypeId` is required on `Item`: resolve the selected type name → id (reuse/extend `getItemTypeBySlug`, or pass the system types in from the server).
+- Set `contentType` per type: `TEXT` for snippet/prompt/command/note, `URL` for link (matches `prisma/seed.ts` and `docs/item-types.md`).
+- **file/image are excluded** — they're Pro/upload types and out of scope here.
+- Collections assignment is out of scope (managed separately, per the edit-mode spec).
+- Reuse the established patterns: Zod schema + `{ success, data, error }`, owner scoping via `session.user.id`, sonner toast, `router.refresh()`.
+- Spec: `context/features/item-create-spec.md`.
 
 ## History
 
