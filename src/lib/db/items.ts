@@ -180,3 +180,76 @@ export async function getItemsByType(typeId: string): Promise<ItemSummary[]> {
 
   return items.map(toItemSummary);
 }
+
+/** Full item detail for the drawer view (dates serialized as ISO strings). */
+export interface ItemDetail {
+  id: string;
+  title: string;
+  description: string | null;
+  content: string | null;
+  url: string | null;
+  fileUrl: string | null;
+  fileName: string | null;
+  fileSize: number | null;
+  language: string | null;
+  isFavorite: boolean;
+  isPinned: boolean;
+  createdAt: string;
+  updatedAt: string;
+  type: { name: string; icon: string; color: string };
+  tags: string[];
+  collections: { id: string; name: string }[];
+}
+
+/**
+ * Fetch a single item's full detail, scoped to its owner (prevents IDOR).
+ * Returns null if the item doesn't exist or isn't owned by `userId`.
+ */
+export async function getItemDetail(
+  id: string,
+  userId: string,
+): Promise<ItemDetail | null> {
+  const item = await prisma.item.findFirst({
+    where: { id, userId },
+    select: {
+      id: true,
+      title: true,
+      description: true,
+      content: true,
+      url: true,
+      fileUrl: true,
+      fileName: true,
+      fileSize: true,
+      language: true,
+      isFavorite: true,
+      isPinned: true,
+      createdAt: true,
+      updatedAt: true,
+      itemType: { select: { name: true, icon: true, color: true } },
+      tags: { select: { name: true } },
+      collections: {
+        select: { collection: { select: { id: true, name: true } } },
+      },
+    },
+  });
+  if (!item) return null;
+
+  return {
+    id: item.id,
+    title: item.title,
+    description: item.description,
+    content: item.content,
+    url: item.url,
+    fileUrl: item.fileUrl,
+    fileName: item.fileName,
+    fileSize: item.fileSize,
+    language: item.language,
+    isFavorite: item.isFavorite,
+    isPinned: item.isPinned,
+    createdAt: item.createdAt.toISOString(),
+    updatedAt: item.updatedAt.toISOString(),
+    type: item.itemType,
+    tags: item.tags.map((tag) => tag.name),
+    collections: item.collections.map((entry) => entry.collection),
+  };
+}

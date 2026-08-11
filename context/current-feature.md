@@ -1,22 +1,25 @@
-# Current Feature
+# Current Feature: Item Drawer
 
-<!-- One or two sentences describing the feature currently being worked on. -->
+A right-side slide-in drawer (shadcn `Sheet`) that opens on ItemCard click to show an item's full detail — the item detail view, with no separate page. Detail-display slice of `docs/item-crud-architecture.md`.
 
 ## Status
 
-Not Started
+In Progress
 
 ## Goals
 
-<!-- What this feature needs to accomplish. Replace with concrete goals. -->
-
--
+- Add a right-side `Sheet` drawer that opens when an `ItemCard` is clicked and shows that item's full detail; works on **both** the dashboard and `/items/[type]` pages.
+- Add a **client wrapper** to own the drawer open/selected state (the pages are Server Components); card data keeps coming from the server component.
+- Fetch full detail (content, collections, language, etc.) **on click** via a new `GET /api/items/[id]` route that calls a new query in `src/lib/db/items.ts` with a session/auth check. Show a skeleton while loading; no page navigation.
+- Action bar: Favorite (star, yellow when active), Pin, Copy, Edit (pencil), Delete (trash, right-aligned) — layout per the screenshot.
 
 ## Notes
 
-<!-- Scope, references, constraints, and anything worth remembering. -->
-
--
+- **Scope:** drawer detail *display* only. Defer the code editor and item-type-specific editing/extras; action-bar buttons are UI-only for now.
+- **Reference:** `context/screenshots/dashboard-ui-drawer.png` (action-bar layout + visual design) — review before implementing.
+- shadcn `Sheet` already exists at `src/components/ui/sheet.tsx`.
+- Intentional pattern deviation: detail is fetched **client-side via the API route** on click (not the usual "server component fetches directly") for the snappy, no-nav UX the spec calls for. The route must verify the session and prevent IDOR (`where: { id, userId }`).
+- Spec: `context/features/item-drawer-spec.md`.
 
 ## History
 
