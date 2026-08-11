@@ -1,29 +1,22 @@
-# Current Feature: Item Drawer — Edit Mode
+# Current Feature
 
-Clicking Edit (pencil) in the item drawer switches the same drawer inline from view mode to editable inputs, with Save/Cancel and a validated server-action update.
+<!-- One or two sentences describing the feature currently being worked on. -->
 
 ## Status
 
-In Progress
+Not Started
 
 ## Goals
 
-- Toggle the drawer between view and edit mode; in edit mode the action bar is replaced by **Save** and **Cancel**. Cancel discards; Save persists, returns to view mode, and refreshes the drawer data.
-- Toast on save success/error.
-- Editable for all types: **Title** (required), **Description** (textarea), **Tags** (comma-separated → array on save). Type-specific: **Content** (snippet/prompt/command/note), **Language** (snippet/command), **URL** (link).
-- Display-only in edit mode: item type, collections, created/updated dates.
-- Add a `updateItem(itemId, data)` **server action** that validates with **Zod**, calls `auth()`, verifies ownership, then the query — returning `{ success, data, error }` with Zod errors surfaced to the client.
-- Add an `updateItem` query in `src/lib/db/items.ts`: tags disconnect-all then connect-or-create; returns the updated `ItemDetail` so the drawer refreshes without a second fetch.
-- Client: controlled inputs + local state (no form library); Save disabled when title is empty; `router.refresh()` after save so the card list reflects changes.
+<!-- What this feature needs to accomplish. Replace with concrete goals. -->
+
+-
 
 ## Notes
 
-- ✅ **Decided (2026-08-10):** use **Zod** — add the `zod` dependency and update `context/coding-standards.md` to say Zod validates server-action inputs (it previously recorded manual validation).
-- ✅ **Decided:** action lives at **`src/lib/item-actions.ts`** (repo convention `src/lib/[feature]-actions.ts`, per `docs/item-crud-architecture.md`), not the spec's `src/actions/items.ts`.
-- ✅ **Decided:** use a real **toast** — install the shadcn toast component via the CLI (Base UI / `base-nova`, never hand-write).
-- Validation must stay server-side authoritative; ownership check scoped to `session.user.id` (anti-IDOR), matching the existing `getItemDetail` pattern.
-- Content textarea is plain — the code editor comes later.
-- Spec: `context/features/item-drawer-edit-spec.md`.
+<!-- Scope, references, constraints, and anything worth remembering. -->
+
+-
 
 ## History
 
@@ -54,3 +47,4 @@ In Progress
 - **2026-08-09 — Items List View.** On branch `feature/items-list-view` (now merged). Shipped the read/list slice of the item CRUD design (`docs/item-crud-architecture.md`): a dynamic `/items/[type]` page. New `src/app/items/[type]/page.tsx` (async Server Component, `force-dynamic`) resolves the `[type]` slug via a new `getItemTypeBySlug` (case-insensitive, system types) → `notFound()` on miss, then lists that type's items via a new `getItemsByType(typeId)` (both added to `src/lib/db/items.ts`, reusing the existing `itemCardSelect`/`ItemSummary`/`toItemSummary`). Renders a header (`TypeIcon` + capitalized name + count) and a responsive `ItemCard` grid (1 col mobile, `md:grid-cols-2`); `ItemCard` reused as-is (already draws the type-colored `border-l-4`), with an empty state for types that have no items (e.g. Pro file/image). Protected `/items` in `src/proxy.ts` (guard + matcher) to match `/dashboard` + `/profile`. Uses the **singular** slug (`/items/snippet`, matching the sidebar links; the spec's plural was illustrative). No new deps, no schema change → no migration. `npm run build` + `npm run lint` pass (new route builds as dynamic). Not yet browser-tested. Deferred (from `feature review`): `getItemsByType` is unbounded (no `take`/pagination) and not user-scoped — consistent with the existing global dashboard db layer; no per-page `<title>`; page is standalone (no dashboard sidebar).
 - **2026-08-09 — Three-Column Items Grid.** On branch `feature/three-column-items-grid` (merged). Widened the `/items/[type]` list grid from 2 to 3 columns on large screens — `src/app/items/[type]/page.tsx` grid class `md:grid-cols-2` → `md:grid-cols-2 lg:grid-cols-3` (responsive: 1 col mobile → 2 at `md` → 3 at `lg`+), still reusing `ItemCard`. CSS-only — no data/logic change, no migration; `feature test` found no server-action/utility logic to cover (Vitest suite still 6/6). `npm run build` + `npm run lint` pass. Not browser-verified. Branched off `main` before the `chore: add test action` skill commit, so it merged via a merge commit rather than fast-forward.
 - **2026-08-10 — Item Drawer.** On branch `feature/item-drawer` (merged). Added the item detail view as a right-side slide-in drawer (shadcn `Sheet`) that opens on `ItemCard` click — the read/detail slice of `docs/item-crud-architecture.md`, no separate item page. New `getItemDetail(id, userId)` in `src/lib/db/items.ts` (owner-scoped `where:{id,userId}` → anti-IDOR; dates → ISO; tags/collections shaped) is called by a new `GET /api/items/[id]` route (`auth()` → 401, not-found/not-owned → 404, else JSON). Client `ItemDrawerProvider` (context owns open/selected state so the pages stay Server Components) + `ItemCardTrigger` (clickable card) + `ItemDetailDrawer` (fetch-on-open via the API route, skeleton while loading, then header + action bar + Description/Content/URL/File + Tags + Collections + Details). Detail is **keyed by id** so there's no stale flash and all `setState` runs in async callbacks (satisfies the React Compiler `set-state-in-effect` rule). Wired the dashboard + `/items/[type]` pages (provider + triggers). Intentional deviation from "server components fetch directly": detail is fetched client-side on click for snappy no-nav UX, per the spec. Scope = display only: Copy works (clipboard), Favorite/Pin reflect state, Edit/Delete render but are **not wired yet** (mutations + code editor deferred). Tests (`feature test`): `getItemDetail` (owner-scope / null / shaping) + the `GET` handler (401/404/200) — suite 12/12. `npm run build` + `npm run lint` pass; drawer open verified in the browser. Note: dashboard collection cards still 404 (their route isn't built) — pre-existing and unrelated.
+- **2026-08-10 — Item Drawer: Edit Mode.** On branch `feature/item-drawer-edit` (merged). Clicking Edit (pencil) now flips the open drawer inline from view to editable inputs, with Save/Cancel replacing the action bar. **First use of Zod** in the repo (`zod` v4) — decided with the user, overriding the earlier "no Zod" note in `context/coding-standards.md`, which was updated to say server-action inputs are Zod-validated. New `updateItem` server action at **`src/lib/item-actions.ts`** (repo convention `src/lib/[feature]-actions.ts`, chosen over the spec's `src/actions/items.ts`): `auth()` → `safeParse` → query, returning `{ success, data|error }` with `z.prettifyError` messages; blank optional inputs are preprocessed to `null` and the title is trimmed. New `updateItem(id, userId, data)` query in `src/lib/db/items.ts` verifies ownership first (returns null → anti-IDOR), updates, replaces tags via `set: []` + `connectOrCreate` on the `name_userId` compound unique, and returns the refreshed `ItemDetail` (no second fetch). New client `ItemEditForm` (controlled inputs, no form library; Save disabled while pending or when the title is blank; type-driven fields — Content for snippet/prompt/command/note, Language for snippet/command, URL for link); `ItemDetailDrawer` tracks `editingId` **keyed by item id** so opening another item resets to view mode and the React Compiler `set-state-in-effect` rule stays satisfied; on save it swaps in the returned item and calls `router.refresh()` so the cards update. Installed the shadcn **sonner** toast + **textarea** via the CLI (Base UI) and mounted `<Toaster />` in `src/app/layout.tsx` (pulled in `sonner` + `next-themes`). Item type, collections and dates remain display-only per spec; the code editor is still deferred. No schema change → no migration. Tests: `updateItem` action (no session / empty title / bad URL / blank→null + trim / not-found / success) and the `updateItem` query (ownership skip, tag connect-or-create, tags omitted when absent) — suite **21/21**. `npm run build` + `npm run lint` pass. Not browser-verified.
