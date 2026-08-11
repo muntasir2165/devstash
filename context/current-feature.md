@@ -1,26 +1,22 @@
-# Current Feature: Delete Item
+# Current Feature
 
-Wire the item drawer's Delete button: a shadcn confirmation dialog, an owner-scoped delete server action, and a success toast.
+<!-- One or two sentences describing the feature currently being worked on. -->
 
 ## Status
 
-In Progress
+Not Started
 
 ## Goals
 
-- Clicking **Delete** (trash) in the drawer's action bar opens a shadcn **AlertDialog** confirmation naming the item; cancelling makes no change.
-- Confirming calls a new `deleteItem(itemId)` **server action** in `src/lib/item-actions.ts`: `auth()` → owner-scoped delete → `{ success, error }`.
-- Add a `deleteItem(id, userId)` query in `src/lib/db/items.ts` that only deletes an item the user owns (returns false otherwise → no IDOR).
-- On success: **toast** confirmation, close the drawer, and `router.refresh()` so the card lists drop the item. On failure: error toast, drawer stays open.
-- Unit tests for the new action + query (happy path, not-signed-in, not-owned).
+<!-- What this feature needs to accomplish. Replace with concrete goals. -->
+
+-
 
 ## Notes
 
-- `alert-dialog` and `sonner` are already installed — reuse them; follow the `DeleteAccountDialog` pattern (`src/components/profile/DeleteAccountDialog.tsx`).
-- The Delete button already exists in `ItemDetailDrawer`'s action bar but is currently inert.
-- Verify FK behavior before deleting: `Item` is referenced by the `ItemCollection` join table and has an implicit m2m to `Tag`. Check `prisma/schema.prisma` for cascade vs. restrict and clean up join rows explicitly if needed (the `deleteAccount` action's FK-safe ordering is the precedent).
-- Deleting is destructive and irreversible — confirmation copy should say so; no schema change expected → no migration.
-- Follows the CRUD design in `docs/item-crud-architecture.md`.
+<!-- Scope, references, constraints, and anything worth remembering. -->
+
+-
 
 ## History
 
@@ -52,3 +48,4 @@ In Progress
 - **2026-08-09 — Three-Column Items Grid.** On branch `feature/three-column-items-grid` (merged). Widened the `/items/[type]` list grid from 2 to 3 columns on large screens — `src/app/items/[type]/page.tsx` grid class `md:grid-cols-2` → `md:grid-cols-2 lg:grid-cols-3` (responsive: 1 col mobile → 2 at `md` → 3 at `lg`+), still reusing `ItemCard`. CSS-only — no data/logic change, no migration; `feature test` found no server-action/utility logic to cover (Vitest suite still 6/6). `npm run build` + `npm run lint` pass. Not browser-verified. Branched off `main` before the `chore: add test action` skill commit, so it merged via a merge commit rather than fast-forward.
 - **2026-08-10 — Item Drawer.** On branch `feature/item-drawer` (merged). Added the item detail view as a right-side slide-in drawer (shadcn `Sheet`) that opens on `ItemCard` click — the read/detail slice of `docs/item-crud-architecture.md`, no separate item page. New `getItemDetail(id, userId)` in `src/lib/db/items.ts` (owner-scoped `where:{id,userId}` → anti-IDOR; dates → ISO; tags/collections shaped) is called by a new `GET /api/items/[id]` route (`auth()` → 401, not-found/not-owned → 404, else JSON). Client `ItemDrawerProvider` (context owns open/selected state so the pages stay Server Components) + `ItemCardTrigger` (clickable card) + `ItemDetailDrawer` (fetch-on-open via the API route, skeleton while loading, then header + action bar + Description/Content/URL/File + Tags + Collections + Details). Detail is **keyed by id** so there's no stale flash and all `setState` runs in async callbacks (satisfies the React Compiler `set-state-in-effect` rule). Wired the dashboard + `/items/[type]` pages (provider + triggers). Intentional deviation from "server components fetch directly": detail is fetched client-side on click for snappy no-nav UX, per the spec. Scope = display only: Copy works (clipboard), Favorite/Pin reflect state, Edit/Delete render but are **not wired yet** (mutations + code editor deferred). Tests (`feature test`): `getItemDetail` (owner-scope / null / shaping) + the `GET` handler (401/404/200) — suite 12/12. `npm run build` + `npm run lint` pass; drawer open verified in the browser. Note: dashboard collection cards still 404 (their route isn't built) — pre-existing and unrelated.
 - **2026-08-10 — Item Drawer: Edit Mode.** On branch `feature/item-drawer-edit` (merged). Clicking Edit (pencil) now flips the open drawer inline from view to editable inputs, with Save/Cancel replacing the action bar. **First use of Zod** in the repo (`zod` v4) — decided with the user, overriding the earlier "no Zod" note in `context/coding-standards.md`, which was updated to say server-action inputs are Zod-validated. New `updateItem` server action at **`src/lib/item-actions.ts`** (repo convention `src/lib/[feature]-actions.ts`, chosen over the spec's `src/actions/items.ts`): `auth()` → `safeParse` → query, returning `{ success, data|error }` with `z.prettifyError` messages; blank optional inputs are preprocessed to `null` and the title is trimmed. New `updateItem(id, userId, data)` query in `src/lib/db/items.ts` verifies ownership first (returns null → anti-IDOR), updates, replaces tags via `set: []` + `connectOrCreate` on the `name_userId` compound unique, and returns the refreshed `ItemDetail` (no second fetch). New client `ItemEditForm` (controlled inputs, no form library; Save disabled while pending or when the title is blank; type-driven fields — Content for snippet/prompt/command/note, Language for snippet/command, URL for link); `ItemDetailDrawer` tracks `editingId` **keyed by item id** so opening another item resets to view mode and the React Compiler `set-state-in-effect` rule stays satisfied; on save it swaps in the returned item and calls `router.refresh()` so the cards update. Installed the shadcn **sonner** toast + **textarea** via the CLI (Base UI) and mounted `<Toaster />` in `src/app/layout.tsx` (pulled in `sonner` + `next-themes`). Item type, collections and dates remain display-only per spec; the code editor is still deferred. No schema change → no migration. Tests: `updateItem` action (no session / empty title / bad URL / blank→null + trim / not-found / success) and the `updateItem` query (ownership skip, tag connect-or-create, tags omitted when absent) — suite **21/21**. `npm run build` + `npm run lint` pass. Not browser-verified.
+- **2026-08-10 — Delete Item.** On branch `feature/delete-item` (merged). Wired the item drawer's previously inert trash button to a real destructive flow. New `deleteItem(id, userId)` query in `src/lib/db/items.ts` uses a single owner-scoped `deleteMany({ where: { id, userId } })` — atomic, no IDOR, and no check-then-delete race — returning whether a row was removed. New `deleteItem(itemId)` server action in `src/lib/item-actions.ts` (`auth()` → query → `{ success }` / `{ success:false, error }`); the "Item not found." message deliberately covers both missing and not-owned so existence isn't leaked. New client `DeleteItemDialog` (`src/components/items/DeleteItemDialog.tsx`) reuses the installed shadcn **alert-dialog** (Base UI `render` prop, following `DeleteAccountDialog`): the trash button is the trigger, the dialog names the item and warns it can't be undone, Cancel is a no-op, and confirming runs the action in a `useTransition` with a pending label. On success it toasts (sonner, added in the previous feature), closes the drawer and calls `router.refresh()` so the card lists drop the item; on failure it toasts the error and leaves the dialog open. **FK check (flagged at load):** `ItemCollection.item` is `onDelete: Cascade` and the `Item`↔`Tag` m2m is implicit, so Prisma cleans both up — no FK-safe ordering needed, unlike `deleteAccount`. No schema change → no migration. Tests: query (owner-scoped `where`, true/false) + action (no session skips the DB, not-found, success scoped to the session user) — suite **27/27**. `npm run build` + `npm run lint` pass. Not browser-verified — the destructive path is still unexercised at runtime.
