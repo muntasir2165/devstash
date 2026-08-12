@@ -5,7 +5,11 @@ import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 
-import { CREATABLE_ITEM_TYPES, createItem } from "@/lib/item-actions";
+import { createItem } from "@/lib/item-actions";
+import {
+  CREATABLE_ITEM_TYPES,
+  type CreatableItemType,
+} from "@/lib/item-constants";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -27,7 +31,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-type ItemType = (typeof CREATABLE_ITEM_TYPES)[number];
+type ItemType = CreatableItemType;
 
 const CONTENT_TYPES = new Set<ItemType>(["snippet", "prompt", "command", "note"]);
 const LANGUAGE_TYPES = new Set<ItemType>(["snippet", "command"]);

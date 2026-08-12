@@ -3,6 +3,7 @@
 import { z } from "zod";
 
 import { auth } from "@/auth";
+import { CREATABLE_ITEM_TYPES } from "@/lib/item-constants";
 import {
   createItem as createItemQuery,
   deleteItem as deleteItemQuery,
@@ -71,15 +72,6 @@ export async function deleteItem(itemId: string): Promise<DeleteItemResult> {
 
   return { success: true };
 }
-
-/** Types creatable from the New Item dialog (file/image are Pro upload types). */
-export const CREATABLE_ITEM_TYPES = [
-  "snippet",
-  "prompt",
-  "command",
-  "note",
-  "link",
-] as const;
 
 const createItemSchema = z
   .object({
