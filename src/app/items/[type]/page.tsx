@@ -3,10 +3,15 @@ import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 
 import { getItemsByType, getItemTypeBySlug } from "@/lib/db/items";
+import {
+  CREATABLE_ITEM_TYPES,
+  type CreatableItemType,
+} from "@/lib/item-constants";
 import { ItemCard } from "@/components/dashboard/ItemCard";
 import { TypeIcon } from "@/components/dashboard/TypeIcon";
 import { ItemCardTrigger } from "@/components/items/ItemCardTrigger";
 import { ItemDrawerProvider } from "@/components/items/ItemDrawerProvider";
+import { NewItemDialog } from "@/components/items/NewItemDialog";
 
 // Reads the database on each request.
 export const dynamic = "force-dynamic";
@@ -22,6 +27,11 @@ export default async function ItemsByTypePage({
   if (!itemType) notFound();
 
   const items = await getItemsByType(itemType.id);
+
+  // file/image are Pro upload types and can't be created from this dialog.
+  const creatableType = CREATABLE_ITEM_TYPES.find(
+    (name) => name === itemType.slug,
+  ) as CreatableItemType | undefined;
 
   return (
     <ItemDrawerProvider>
@@ -46,6 +56,14 @@ export default async function ItemsByTypePage({
               {items.length} {items.length === 1 ? "item" : "items"}
             </p>
           </div>
+          {creatableType ? (
+            <div className="ml-auto">
+              <NewItemDialog
+                defaultType={creatableType}
+                label={`New ${itemType.name}`}
+              />
+            </div>
+          ) : null}
         </div>
 
         {items.length > 0 ? (
