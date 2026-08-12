@@ -23,9 +23,12 @@ import { TypeIcon } from "@/components/dashboard/TypeIcon";
 import { CodeEditor } from "./CodeEditor";
 import { DeleteItemDialog } from "./DeleteItemDialog";
 import { ItemEditForm } from "./ItemEditForm";
+import { MarkdownEditor } from "./MarkdownEditor";
 
 /** Types whose content is code and renders in the Monaco editor. */
 const CODE_TYPES = new Set(["snippet", "command"]);
+/** Types whose content is markdown. */
+const MARKDOWN_TYPES = new Set(["note", "prompt"]);
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-US", {
@@ -221,6 +224,8 @@ function DrawerBody({
         <Section label="Content">
           {CODE_TYPES.has(item.type.name.toLowerCase()) ? (
             <CodeEditor value={item.content} language={item.language} readOnly />
+          ) : MARKDOWN_TYPES.has(item.type.name.toLowerCase()) ? (
+            <MarkdownEditor value={item.content} readOnly />
           ) : (
             <pre className="overflow-x-auto rounded-lg border bg-muted/50 p-4 text-xs leading-relaxed">
               <code>{item.content}</code>

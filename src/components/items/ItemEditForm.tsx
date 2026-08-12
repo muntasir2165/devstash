@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { CodeEditor } from "./CodeEditor";
+import { MarkdownEditor } from "./MarkdownEditor";
 
 const CONTENT_TYPES = new Set(["snippet", "prompt", "command", "note"]);
 const LANGUAGE_TYPES = new Set(["snippet", "command"]);
@@ -103,13 +104,7 @@ export function ItemEditForm({
               onChange={setContent}
             />
           ) : (
-            <Textarea
-              id="item-content"
-              value={content}
-              onChange={(event) => setContent(event.target.value)}
-              rows={10}
-              className="font-mono text-xs"
-            />
+            <MarkdownEditor value={content} onChange={setContent} />
           )}
         </Field>
       ) : null}

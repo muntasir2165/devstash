@@ -1,22 +1,32 @@
-# Current Feature
+# Current Feature: Markdown Editor
 
-<!-- One or two sentences describing the feature currently being worked on. -->
+A `MarkdownEditor` with Write/Preview tabs for note and prompt content, styled to match the existing `CodeEditor` chrome.
 
 ## Status
 
-Not Started
+In Progress
 
 ## Goals
 
-<!-- What this feature needs to accomplish. Replace with concrete goals. -->
-
--
+- Create a `MarkdownEditor` component with a tabbed **Write / Preview** interface.
+- Use it for **notes and prompts only**; snippets and commands keep `CodeEditor` unchanged.
+- Render with **`react-markdown` + `remark-gfm`** (GitHub Flavored Markdown).
+- Header matching `CodeEditor`: same chrome + a **copy** button in the same style.
+- Support **display (readonly)** and **edit** modes — readonly shows only Preview; edit defaults to Write with Preview available.
+- Fluid height capped at **400px**, matching `CodeEditor`.
+- Style the preview via a custom `.markdown-preview` class (reliable in dark mode): distinct h1–h6, code blocks (dark bg, monospace), inline code, lists, blockquotes with a left accent, blue links with hover, bordered tables with a header background.
+- Wire all three integration points for note/prompt: `NewItemDialog`, drawer **edit** mode, drawer **view** mode (readonly).
 
 ## Notes
 
-<!-- Scope, references, constraints, and anything worth remembering. -->
-
--
+- ⚠️ **Missing deps:** `react-markdown` and `remark-gfm` are not installed.
+- ⚠️ **No `tabs` component** — shadcn `tabs` isn't installed (`src/components/ui/` has no `tabs.tsx`). Install via `npx shadcn@latest add tabs` (Base UI / `base-nova`, never hand-write), or build a minimal two-button toggle.
+- ⚠️ **Colour mismatch with the spec:** it specifies `bg-[#1e1e1e]` container / `bg-[#2d2d2d]` header, but the shipped `CodeEditor` actually uses **`bg-[#0d0d11]`** with a `border-zinc-800` header. Following the spec literally would make the two editors visually inconsistent — recommend matching `CodeEditor`'s real values so "match existing styling" holds. Confirm at `start`.
+- ⚠️ **Security:** `react-markdown` escapes HTML by default (no `rehype-raw`) — keep it that way so user content can't inject HTML/XSS. Don't add `rehype-raw` without sanitisation.
+- Where the plain `Textarea` remains after this: nothing for content (notes/prompts move to Markdown, snippets/commands are already Monaco) — the Description fields keep using `Textarea`.
+- Custom CSS goes in `src/app/globals.css` (Tailwind v4, CSS-based config — no `tailwind.config.js`); `@tailwindcss/typography` is not installed, consistent with the spec's custom-class approach.
+- No schema/data changes — presentation only.
+- Spec: `context/features/markdown-editor-spec.md`.
 
 ## History
 

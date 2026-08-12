@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { CodeEditor } from "./CodeEditor";
+import { MarkdownEditor } from "./MarkdownEditor";
 import {
   Dialog,
   DialogClose,
@@ -182,13 +183,7 @@ export function NewItemDialog({
                   onChange={setContent}
                 />
               ) : (
-                <Textarea
-                  id="new-item-content"
-                  value={content}
-                  onChange={(event) => setContent(event.target.value)}
-                  rows={8}
-                  className="font-mono text-xs"
-                />
+                <MarkdownEditor value={content} onChange={setContent} />
               )}
             </Field>
           ) : null}
