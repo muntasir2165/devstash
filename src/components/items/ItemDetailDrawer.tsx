@@ -20,8 +20,12 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { TypeIcon } from "@/components/dashboard/TypeIcon";
+import { CodeEditor } from "./CodeEditor";
 import { DeleteItemDialog } from "./DeleteItemDialog";
 import { ItemEditForm } from "./ItemEditForm";
+
+/** Types whose content is code and renders in the Monaco editor. */
+const CODE_TYPES = new Set(["snippet", "command"]);
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-US", {
@@ -215,9 +219,13 @@ function DrawerBody({
         </Section>
       ) : item.content ? (
         <Section label="Content">
-          <pre className="overflow-x-auto rounded-lg border bg-muted/50 p-4 text-xs leading-relaxed">
-            <code>{item.content}</code>
-          </pre>
+          {CODE_TYPES.has(item.type.name.toLowerCase()) ? (
+            <CodeEditor value={item.content} language={item.language} readOnly />
+          ) : (
+            <pre className="overflow-x-auto rounded-lg border bg-muted/50 p-4 text-xs leading-relaxed">
+              <code>{item.content}</code>
+            </pre>
+          )}
         </Section>
       ) : null}
 

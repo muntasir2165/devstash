@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { CodeEditor } from "./CodeEditor";
 import {
   Dialog,
   DialogClose,
@@ -55,9 +56,16 @@ function Field({
   );
 }
 
-export function NewItemDialog() {
+export function NewItemDialog({
+  defaultType = "snippet",
+  label = "New Item",
+}: {
+  /** Preselects the type — used by the per-type item pages. */
+  defaultType?: ItemType;
+  label?: string;
+} = {}) {
   const [open, setOpen] = useState(false);
-  const [type, setType] = useState<ItemType>("snippet");
+  const [type, setType] = useState<ItemType>(defaultType);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [content, setContent] = useState("");
@@ -68,7 +76,7 @@ export function NewItemDialog() {
   const router = useRouter();
 
   function reset() {
-    setType("snippet");
+    setType(defaultType);
     setTitle("");
     setDescription("");
     setContent("");
@@ -114,7 +122,7 @@ export function NewItemDialog() {
     >
       <DialogTrigger render={<Button size="lg" />}>
         <Plus />
-        New Item
+        {label}
       </DialogTrigger>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
@@ -167,13 +175,21 @@ export function NewItemDialog() {
 
           {CONTENT_TYPES.has(type) ? (
             <Field label="Content" htmlFor="new-item-content">
-              <Textarea
-                id="new-item-content"
-                value={content}
-                onChange={(event) => setContent(event.target.value)}
-                rows={8}
-                className="font-mono text-xs"
-              />
+              {LANGUAGE_TYPES.has(type) ? (
+                <CodeEditor
+                  value={content}
+                  language={language}
+                  onChange={setContent}
+                />
+              ) : (
+                <Textarea
+                  id="new-item-content"
+                  value={content}
+                  onChange={(event) => setContent(event.target.value)}
+                  rows={8}
+                  className="font-mono text-xs"
+                />
+              )}
             </Field>
           ) : null}
 

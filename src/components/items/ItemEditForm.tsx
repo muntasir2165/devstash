@@ -8,6 +8,7 @@ import { updateItem } from "@/lib/item-actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { CodeEditor } from "./CodeEditor";
 
 const CONTENT_TYPES = new Set(["snippet", "prompt", "command", "note"]);
 const LANGUAGE_TYPES = new Set(["snippet", "command"]);
@@ -95,13 +96,21 @@ export function ItemEditForm({
 
       {CONTENT_TYPES.has(typeName) ? (
         <Field label="Content" htmlFor="item-content">
-          <Textarea
-            id="item-content"
-            value={content}
-            onChange={(event) => setContent(event.target.value)}
-            rows={10}
-            className="font-mono text-xs"
-          />
+          {LANGUAGE_TYPES.has(typeName) ? (
+            <CodeEditor
+              value={content}
+              language={language}
+              onChange={setContent}
+            />
+          ) : (
+            <Textarea
+              id="item-content"
+              value={content}
+              onChange={(event) => setContent(event.target.value)}
+              rows={10}
+              className="font-mono text-xs"
+            />
+          )}
         </Field>
       ) : null}
 
