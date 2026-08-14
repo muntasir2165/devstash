@@ -3,7 +3,7 @@
 import { z } from "zod";
 
 import { auth } from "@/auth";
-import { CREATABLE_ITEM_TYPES } from "@/lib/item-constants";
+import { CREATABLE_ITEM_TYPES, isUploadType } from "@/lib/item-constants";
 import {
   createItem as createItemQuery,
   deleteItem as deleteItemQuery,
@@ -82,11 +82,18 @@ const createItemSchema = z
     url: z.preprocess(emptyToNull, z.url("Enter a valid URL").nullable()),
     language: z.preprocess(emptyToNull, z.string().trim().nullable()),
     tags: z.array(z.string().trim().min(1)),
+    fileUrl: z.preprocess(emptyToNull, z.url().nullable()).optional(),
+    fileName: z.preprocess(emptyToNull, z.string().nullable()).optional(),
+    fileSize: z.number().int().positive().nullable().optional(),
   })
   .refine((data) => data.type !== "link" || data.url !== null, {
     path: ["url"],
     error: "A link needs a URL",
-  });
+  })
+  .refine(
+    (data) => !isUploadType(data.type) || Boolean(data.fileUrl),
+    { path: ["fileUrl"], error: "Upload a file first" },
+  );
 
 export type CreateItemInput = z.input<typeof createItemSchema>;
 

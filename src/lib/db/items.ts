@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { deleteFromR2, keyFromPublicUrl } from "@/lib/r2";
 import { ContentType, Prisma } from "@/generated/prisma/client";
 
 /** An item shaped for the dashboard item cards. */
@@ -306,12 +307,25 @@ export async function updateItem(
 }
 
 /**
- * Delete an item the user owns. Returns false when it doesn't exist or isn't theirs.
+ * Delete an item the user owns, removing its R2 object first.
+ * Returns false when it doesn't exist or isn't theirs.
  * Collection links cascade; implicit tag links are cleaned up by Prisma.
  */
 export async function deleteItem(id: string, userId: string): Promise<boolean> {
+  // Read the file URL before the row goes, otherwise the object is orphaned.
+  const existing = await prisma.item.findFirst({
+    where: { id, userId },
+    select: { fileUrl: true },
+  });
+  if (!existing) return false;
+
   const { count } = await prisma.item.deleteMany({ where: { id, userId } });
-  return count > 0;
+  if (count === 0) return false;
+
+  const key = keyFromPublicUrl(existing.fileUrl);
+  if (key) await deleteFromR2(key);
+
+  return true;
 }
 
 /** Fields needed to create an item from the "New Item" dialog. */
@@ -324,6 +338,9 @@ export interface CreateItemData {
   url?: string | null;
   language?: string | null;
   tags?: string[];
+  fileUrl?: string | null;
+  fileName?: string | null;
+  fileSize?: number | null;
 }
 
 /**
@@ -340,6 +357,12 @@ export async function createItem(
   });
   if (!itemType) return null;
 
+  const contentType = data.fileUrl
+    ? ContentType.FILE
+    : data.url
+      ? ContentType.URL
+      : ContentType.TEXT;
+
   const item = await prisma.item.create({
     data: {
       title: data.title,
@@ -347,7 +370,10 @@ export async function createItem(
       content: data.content,
       url: data.url,
       language: data.language,
-      contentType: data.url ? ContentType.URL : ContentType.TEXT,
+      fileUrl: data.fileUrl,
+      fileName: data.fileName,
+      fileSize: data.fileSize,
+      contentType,
       userId,
       itemTypeId: itemType.id,
       ...(data.tags?.length

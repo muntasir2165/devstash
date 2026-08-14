@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   Calendar,
   Copy,
+  Download,
   FolderOpen,
   Pencil,
   Pin,
@@ -207,18 +208,31 @@ function DrawerBody({
           </a>
         </Section>
       ) : item.fileUrl ? (
-        <Section label="File">
-          <a
-            href={item.fileUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sm break-all text-primary underline underline-offset-2"
-          >
-            {item.fileName ?? "Download file"}
-          </a>
-          {size ? (
-            <span className="ml-2 text-xs text-muted-foreground">{size}</span>
+        <Section label={item.type.name.toLowerCase() === "image" ? "Image" : "File"}>
+          {item.type.name.toLowerCase() === "image" ? (
+            // Remote R2 host isn't configured in next.config images — plain img is intentional.
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={item.fileUrl}
+              alt={item.fileName ?? item.title}
+              className="max-h-64 w-full rounded-lg border object-contain"
+            />
           ) : null}
+          <div className="mt-2 flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              render={<a href={`/api/items/${item.id}/download`} download />}
+            >
+              <Download className="size-4" />
+              Download
+            </Button>
+            <span className="min-w-0 truncate text-xs text-muted-foreground">
+              {item.fileName}
+              {size ? ` · ${size}` : ""}
+            </span>
+          </div>
         </Section>
       ) : item.content ? (
         <Section label="Content">

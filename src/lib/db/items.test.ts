@@ -12,7 +12,16 @@ vi.mock("@/lib/prisma", () => ({
   },
 }));
 
+vi.mock("@/lib/r2", () => ({
+  deleteFromR2: vi.fn(),
+  keyFromPublicUrl: (url: string | null) =>
+    url && url.startsWith("https://cdn.example.com/")
+      ? url.slice("https://cdn.example.com/".length)
+      : null,
+}));
+
 import { prisma } from "@/lib/prisma";
+import { deleteFromR2 } from "@/lib/r2";
 import {
   createItem,
   deleteItem,
@@ -25,6 +34,7 @@ const update = vi.mocked(prisma.item.update);
 const deleteMany = vi.mocked(prisma.item.deleteMany);
 const create = vi.mocked(prisma.item.create);
 const typeFindFirst = vi.mocked(prisma.itemType.findFirst);
+const mockDeleteFromR2 = vi.mocked(deleteFromR2);
 
 beforeEach(() => vi.clearAllMocks());
 
@@ -125,6 +135,7 @@ describe("updateItem", () => {
 
 describe("deleteItem", () => {
   it("scopes the delete to the owner", async () => {
+    findFirst.mockResolvedValue({ fileUrl: null } as never);
     deleteMany.mockResolvedValue({ count: 1 } as never);
     await deleteItem("item-1", "user-1");
     expect(deleteMany).toHaveBeenCalledWith({
@@ -133,13 +144,35 @@ describe("deleteItem", () => {
   });
 
   it("returns true when a row was removed", async () => {
+    findFirst.mockResolvedValue({ fileUrl: null } as never);
     deleteMany.mockResolvedValue({ count: 1 } as never);
     await expect(deleteItem("item-1", "user-1")).resolves.toBe(true);
   });
 
-  it("returns false when the item is missing or not owned", async () => {
-    deleteMany.mockResolvedValue({ count: 0 } as never);
+  it("returns false and skips the delete when not owned", async () => {
+    findFirst.mockResolvedValue(null as never);
     await expect(deleteItem("item-1", "user-2")).resolves.toBe(false);
+    expect(deleteMany).not.toHaveBeenCalled();
+  });
+
+  it("removes the stored R2 object alongside the row", async () => {
+    findFirst.mockResolvedValue({
+      fileUrl: "https://cdn.example.com/user-1/abc-photo.png",
+    } as never);
+    deleteMany.mockResolvedValue({ count: 1 } as never);
+
+    await deleteItem("item-1", "user-1");
+
+    expect(mockDeleteFromR2).toHaveBeenCalledWith("user-1/abc-photo.png");
+  });
+
+  it("doesn't call R2 for items without a file", async () => {
+    findFirst.mockResolvedValue({ fileUrl: null } as never);
+    deleteMany.mockResolvedValue({ count: 1 } as never);
+
+    await deleteItem("item-1", "user-1");
+
+    expect(mockDeleteFromR2).not.toHaveBeenCalled();
   });
 });
 

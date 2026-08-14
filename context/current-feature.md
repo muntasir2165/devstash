@@ -1,22 +1,37 @@
-# Current Feature
+# Current Feature: File & Image Upload (Cloudflare R2)
 
-<!-- One or two sentences describing the feature currently being worked on. -->
+Upload file and image items to Cloudflare R2 with drag-and-drop, progress, previews, a download proxy, and R2 cleanup on delete.
 
 ## Status
 
-Not Started
+In Progress
 
 ## Goals
 
-<!-- What this feature needs to accomplish. Replace with concrete goals. -->
-
--
+- Add an **upload API route** that stores objects in Cloudflare R2.
+- Keep all Prisma/db access in `src/lib/db/items.ts` (per repo convention).
+- Build a **`FileUpload` component** with drag-and-drop and an **upload progress** indicator.
+- Use it in the create-item modal for the **file** and **image** types.
+- **Delete objects from R2** when the owning item is deleted.
+- Add a **download proxy** API route (avoids CORS) and a **Download** button in the item drawer for file types.
+- Show an **image preview** for images and file info (name/size) for files.
+- Enforce constraints: images **5 MB** (`.png .jpg .jpeg .gif .webp .svg`), files **10 MB** (`.pdf .txt .md .json .yaml .yml .xml .csv .toml .ini`), validated against the MIME allow-list in the spec.
 
 ## Notes
 
-<!-- Scope, references, constraints, and anything worth remembering. -->
-
--
+- ✅ **Decided (2026-08-14, my judgement — flagged for review):**
+  - **No Pro gating.** `User.isPro` exists but nothing ever sets it (no billing flow), so gating would make the feature untestable. Revisit when billing lands.
+  - **Upload proxied through our API route** (not presigned direct-to-R2): keeps R2 credentials server-side and lets us validate bytes; a Node route handler comfortably takes 10 MB.
+  - **R2 key derived from `fileUrl`** by stripping the `R2_PUBLIC_URL` prefix — **no migration needed**.
+- ✅ **Env vars already added** to `.env.example` (uncommitted on `main`): `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, `R2_PUBLIC_URL`. Real values still need to go in `.env` / `.env.production`.
+- ⚠️ **No S3 SDK installed** — R2 speaks the S3 API, so this needs `@aws-sdk/client-s3` (+ `@aws-sdk/s3-request-presigner` only if we go the presigned-URL route). Decide **direct-to-R2 presigned upload** vs **proxy the bytes through our API route** at `start`; the latter is simpler and keeps creds server-side but is bound by the serverless body-size limit (10 MB files are near it).
+- ⚠️ **file/image are NOT creatable today** — `CREATABLE_ITEM_TYPES` in `src/lib/item-constants.ts` lists only snippet/prompt/command/note/link, and the Zod `createItem` enum derives from it. Both the constant and the create flow must be extended, and `contentType` must be set to `FILE` (the query currently only ever writes `TEXT`/`URL`).
+- ⚠️ **Pro gating conflict:** `docs/item-types.md` and the sidebar (`PRO_TYPE_SLUGS`) treat file/image as **Pro-only**, and `User.isPro` exists in the schema. The spec says nothing about gating — decide whether upload is Pro-gated or open to all.
+- ⚠️ **Deleting an item currently leaves R2 orphans.** `deleteItem(id, userId)` is a single `deleteMany` that returns only a count — it must first read `fileUrl`/key so the object can be removed. Same problem, larger, in `deleteAccount` (bulk `item.deleteMany`) and in cascade deletes; decide how far to chase orphans.
+- ⚠️ **Schema has no object-key field** — only `fileUrl`, `fileName`, `fileSize`. Either derive the R2 key from the URL or add a `fileKey` column (**that would need a migration**).
+- 🔒 **Security:** validate MIME **and** extension **and** size server-side (never trust the client); scope every object key to the owning `userId`; the download proxy must verify the session + ownership or it becomes an open relay. **SVG is script-capable** — serve downloads with `Content-Disposition: attachment` and a non-inline content type, and never render untrusted SVG inline.
+- Replacing/removing an existing upload should also clean up the old object.
+- Spec: `context/features/file-image-spec.md`.
 
 ## History
 

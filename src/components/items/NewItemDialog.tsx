@@ -8,12 +8,14 @@ import { toast } from "sonner";
 import { createItem } from "@/lib/item-actions";
 import {
   CREATABLE_ITEM_TYPES,
+  isUploadType,
   type CreatableItemType,
 } from "@/lib/item-constants";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { CodeEditor } from "./CodeEditor";
+import { FileUpload, type UploadedFile } from "./FileUpload";
 import { MarkdownEditor } from "./MarkdownEditor";
 import {
   Dialog,
@@ -73,6 +75,7 @@ export function NewItemDialog({
   const [language, setLanguage] = useState("");
   const [url, setUrl] = useState("");
   const [tags, setTags] = useState("");
+  const [upload, setUpload] = useState<UploadedFile | null>(null);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
 
@@ -84,6 +87,7 @@ export function NewItemDialog({
     setLanguage("");
     setUrl("");
     setTags("");
+    setUpload(null);
   }
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -96,6 +100,9 @@ export function NewItemDialog({
         content: CONTENT_TYPES.has(type) ? content : "",
         language: LANGUAGE_TYPES.has(type) ? language : "",
         url: type === "link" ? url : "",
+        fileUrl: upload?.url ?? null,
+        fileName: upload?.fileName ?? null,
+        fileSize: upload?.fileSize ?? null,
         tags: tags
           .split(",")
           .map((tag) => tag.trim())
@@ -174,6 +181,19 @@ export function NewItemDialog({
             />
           </Field>
 
+          {isUploadType(type) ? (
+            <Field
+              label={type === "image" ? "Image" : "File"}
+              htmlFor="new-item-upload"
+            >
+              <FileUpload
+                kind={type}
+                value={upload}
+                onChange={setUpload}
+              />
+            </Field>
+          ) : null}
+
           {CONTENT_TYPES.has(type) ? (
             <Field label="Content" htmlFor="new-item-content">
               {LANGUAGE_TYPES.has(type) ? (
@@ -228,7 +248,12 @@ export function NewItemDialog({
             <DialogClose render={<Button type="button" variant="ghost" />}>
               Cancel
             </DialogClose>
-            <Button type="submit" disabled={pending || !title.trim()}>
+            <Button
+              type="submit"
+              disabled={
+                pending || !title.trim() || (isUploadType(type) && !upload)
+              }
+            >
               {pending ? "Creating…" : "Create item"}
             </Button>
           </DialogFooter>
