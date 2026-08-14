@@ -1,22 +1,27 @@
-# Current Feature
+# Current Feature: Image Gallery View
 
-<!-- One or two sentences describing the feature currently being worked on. -->
+Replace the standard item card with an image thumbnail card and show images in a 3-column gallery grid.
 
 ## Status
 
-Not Started
+In Progress
 
 ## Goals
 
-<!-- What this feature needs to accomplish. Replace with concrete goals. -->
-
--
+- Create an **image thumbnail card** used instead of the regular `ItemCard` for image items.
+- Lay images out in a **3-column** grid/gallery.
+- Thumbnail uses a **16:9 (`aspect-video`)** frame with **`object-cover`** (cropping is expected).
+- Subtle **hover zoom**: 5% scale over a 300ms transition.
 
 ## Notes
 
-<!-- Scope, references, constraints, and anything worth remembering. -->
-
--
+- ⚠️ **Blocker — card data has no image URL.** `itemCardSelect` / `ItemSummary` in `src/lib/db/items.ts` return only id/title/description/icon/color/tags/pin/favourite/createdAt — **no `fileUrl`**. The query and the `ItemSummary` shape must be extended before a thumbnail can render (`fileUrl` is currently only on the heavier `ItemDetail`).
+- ⚠️ **Scope ambiguity:** the spec says "replace the current item card" without saying where. Images appear on `/items/image` **and** in the dashboard's Recent/Pinned lists. Plan: use the gallery on the **`/items/image` page**; leave the dashboard's mixed-type lists on the standard card (a 16:9 tile would break those single-column rows). Confirm at `start`.
+- The `/items/[type]` grid is currently `md:grid-cols-2 lg:grid-cols-3` — the gallery needs its own column rule to hit 3, and should stay responsive on small screens.
+- **Images render with a plain `<img>`**, not `next/image`: the R2 host isn't in `next.config.ts` (`images.remotePatterns` isn't configured at all). Either keep `<img>` (consistent with the drawer/FileUpload) or add the R2 hostname to `next.config.ts` to get optimisation — decide at `start`.
+- Items whose upload is missing/broken need a fallback tile so the grid doesn't show a broken image.
+- No schema change and no server-action work — a query-shape tweak plus presentation.
+- Spec: `context/features/image-display-spec.md`.
 
 ## History
 

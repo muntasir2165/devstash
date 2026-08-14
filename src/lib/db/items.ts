@@ -15,6 +15,8 @@ export interface ItemSummary {
   isPinned: boolean;
   isFavorite: boolean;
   createdAt: Date;
+  /** Stored object URL — only set for file/image items; drives gallery thumbnails. */
+  fileUrl: string | null;
 }
 
 /** Fields needed to render an item card, including its type and tags. */
@@ -25,6 +27,7 @@ const itemCardSelect = {
   isPinned: true,
   isFavorite: true,
   createdAt: true,
+  fileUrl: true,
   itemType: { select: { icon: true, color: true } },
   tags: { select: { name: true } },
 } satisfies Prisma.ItemSelect;
@@ -42,6 +45,7 @@ function toItemSummary(item: ItemCardRow): ItemSummary {
     isPinned: item.isPinned,
     isFavorite: item.isFavorite,
     createdAt: item.createdAt,
+    fileUrl: item.fileUrl,
   };
 }
 

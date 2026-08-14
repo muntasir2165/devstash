@@ -11,6 +11,7 @@ import { ItemCard } from "@/components/dashboard/ItemCard";
 import { TypeIcon } from "@/components/dashboard/TypeIcon";
 import { ItemCardTrigger } from "@/components/items/ItemCardTrigger";
 import { ItemDrawerProvider } from "@/components/items/ItemDrawerProvider";
+import { ImageCard } from "@/components/items/ImageCard";
 import { NewItemDialog } from "@/components/items/NewItemDialog";
 
 // Reads the database on each request.
@@ -27,6 +28,9 @@ export default async function ItemsByTypePage({
   if (!itemType) notFound();
 
   const items = await getItemsByType(itemType.id);
+
+  // Images get a thumbnail gallery instead of the standard card list.
+  const isImageGallery = itemType.slug === "image";
 
   // file/image are Pro upload types and can't be created from this dialog.
   const creatableType = CREATABLE_ITEM_TYPES.find(
@@ -67,10 +71,20 @@ export default async function ItemsByTypePage({
         </div>
 
         {items.length > 0 ? (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div
+            className={
+              isImageGallery
+                ? "grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+                : "grid gap-4 md:grid-cols-2 lg:grid-cols-3"
+            }
+          >
             {items.map((item) => (
               <ItemCardTrigger key={item.id} id={item.id}>
-                <ItemCard item={item} />
+                {isImageGallery ? (
+                  <ImageCard item={item} />
+                ) : (
+                  <ItemCard item={item} />
+                )}
               </ItemCardTrigger>
             ))}
           </div>
