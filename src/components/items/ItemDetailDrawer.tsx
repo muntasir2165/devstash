@@ -223,6 +223,7 @@ function DrawerBody({
               variant="outline"
               size="sm"
               className="gap-1.5"
+              nativeButton={false}
               render={<a href={`/api/items/${item.id}/download`} download />}
             >
               <Download className="size-4" />
