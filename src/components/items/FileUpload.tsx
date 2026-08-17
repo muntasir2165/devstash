@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { File as FileIcon, Loader2, Upload, X } from "lucide-react";
 
-import { cn } from "@/lib/utils";
+import { cn, formatBytes } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
 export type UploadedFile = {
@@ -21,12 +21,6 @@ const MAX_LABEL: Record<"image" | "file", string> = {
   image: "PNG, JPG, GIF, WEBP or SVG · up to 5 MB",
   file: "PDF, TXT, MD, JSON, YAML, XML, CSV, TOML or INI · up to 10 MB",
 };
-
-export function formatBytes(bytes: number) {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
 
 export function FileUpload({
   kind,

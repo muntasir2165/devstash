@@ -12,6 +12,7 @@ import { TypeIcon } from "@/components/dashboard/TypeIcon";
 import { ItemCardTrigger } from "@/components/items/ItemCardTrigger";
 import { ItemDrawerProvider } from "@/components/items/ItemDrawerProvider";
 import { ImageCard } from "@/components/items/ImageCard";
+import { FileRow } from "@/components/items/FileRow";
 import { NewItemDialog } from "@/components/items/NewItemDialog";
 
 // Reads the database on each request.
@@ -31,6 +32,8 @@ export default async function ItemsByTypePage({
 
   // Images get a thumbnail gallery instead of the standard card list.
   const isImageGallery = itemType.slug === "image";
+  // Files get a Drive-style single-column list.
+  const isFileList = itemType.slug === "file";
 
   // file/image are Pro upload types and can't be created from this dialog.
   const creatableType = CREATABLE_ITEM_TYPES.find(
@@ -71,23 +74,31 @@ export default async function ItemsByTypePage({
         </div>
 
         {items.length > 0 ? (
-          <div
-            className={
-              isImageGallery
-                ? "grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
-                : "grid gap-4 md:grid-cols-2 lg:grid-cols-3"
-            }
-          >
-            {items.map((item) => (
-              <ItemCardTrigger key={item.id} id={item.id}>
-                {isImageGallery ? (
-                  <ImageCard item={item} />
-                ) : (
-                  <ItemCard item={item} />
-                )}
-              </ItemCardTrigger>
-            ))}
-          </div>
+          isFileList ? (
+            <div className="flex flex-col gap-2">
+              {items.map((item) => (
+                <FileRow key={item.id} item={item} />
+              ))}
+            </div>
+          ) : (
+            <div
+              className={
+                isImageGallery
+                  ? "grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+                  : "grid gap-4 md:grid-cols-2 lg:grid-cols-3"
+              }
+            >
+              {items.map((item) => (
+                <ItemCardTrigger key={item.id} id={item.id}>
+                  {isImageGallery ? (
+                    <ImageCard item={item} />
+                  ) : (
+                    <ItemCard item={item} />
+                  )}
+                </ItemCardTrigger>
+              ))}
+            </div>
+          )
         ) : (
           <p className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
             No {itemType.name} items yet.

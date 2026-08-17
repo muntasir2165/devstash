@@ -17,6 +17,9 @@ export interface ItemSummary {
   createdAt: Date;
   /** Stored object URL — only set for file/image items; drives gallery thumbnails. */
   fileUrl: string | null;
+  /** Original upload name — drives the file list's name and extension icon. */
+  fileName: string | null;
+  fileSize: number | null;
 }
 
 /** Fields needed to render an item card, including its type and tags. */
@@ -28,6 +31,8 @@ const itemCardSelect = {
   isFavorite: true,
   createdAt: true,
   fileUrl: true,
+  fileName: true,
+  fileSize: true,
   itemType: { select: { icon: true, color: true } },
   tags: { select: { name: true } },
 } satisfies Prisma.ItemSelect;
@@ -46,6 +51,8 @@ function toItemSummary(item: ItemCardRow): ItemSummary {
     isFavorite: item.isFavorite,
     createdAt: item.createdAt,
     fileUrl: item.fileUrl,
+    fileName: item.fileName,
+    fileSize: item.fileSize,
   };
 }
 

@@ -1,22 +1,30 @@
-# Current Feature
+# Current Feature: File List View
 
-<!-- One or two sentences describing the feature currently being worked on. -->
+Show file items as a single-column Drive/Dropbox-style list of rows instead of grid cards.
 
 ## Status
 
-Not Started
+In Progress
 
 ## Goals
 
-<!-- What this feature needs to accomplish. Replace with concrete goals. -->
-
--
+- Render the file type page as a **single-column list** of rows (not the card grid).
+- Each row shows: **file icon by extension**, file name, **file size**, upload date, and a **download button**.
+- **Hover highlight** on the row.
+- **Clicking the row opens the ItemDrawer**; the download button triggers a direct download and must **not** also open the drawer.
+- **Responsive:** stack the row's info vertically on mobile.
 
 ## Notes
 
-<!-- Scope, references, constraints, and anything worth remembering. -->
-
--
+- ⚠️ **Blocker — card data lacks file metadata.** `ItemSummary`/`itemCardSelect` now include `fileUrl` (added for the gallery) but **not `fileName` or `fileSize`**, which this spec needs for the name, size and extension-derived icon. The list query must be extended again — same class of gap as the gallery feature.
+- ⚠️ **Invalid nesting risk.** `ItemCardTrigger` wraps each card in a real `<button>`. Putting the download control (a `<button>` or `<a download>`) inside it nests interactive content inside a button — invalid HTML, and the reason the spec calls for `stopPropagation`. Plan: don't reuse `ItemCardTrigger` for rows; make the row a non-button container with its own click handler and keep the download control a sibling, so both stay valid and independently clickable.
+- ⚠️ **Route naming:** the spec says `/items/files` (plural) but routes use the **singular** DB slug — the real path is **`/items/file`** (matching `/items/image` from the gallery). Using the singular.
+- Download should go through the existing owner-checked proxy `/api/items/[id]/download` (not the raw R2 URL), consistent with the drawer.
+- `formatBytes` already exists in `src/components/items/FileUpload.tsx` — reuse/lift it rather than writing a second copy.
+- The drawer's download `Button` needs `nativeButton={false}` when rendered as an `<a>` (Base UI a11y rule learned last feature) — applies to any new download control too.
+- Follows the same page-level branch as the gallery: `/items/[type]` picks list vs grid by `itemType.slug`.
+- No schema change, no server-action work — a query-shape tweak plus presentation.
+- Spec: `context/features/file-display-spec.md`.
 
 ## History
 
