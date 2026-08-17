@@ -3,10 +3,10 @@ import { FileStack, FolderHeart, FolderOpen, Star } from "lucide-react";
 import { getCollectionStats } from "@/lib/db/collections";
 import { getItemStats } from "@/lib/db/items";
 
-export async function StatsCards() {
+export async function StatsCards({ userId }: { userId: string }) {
   const [collectionStats, itemStats] = await Promise.all([
-    getCollectionStats(),
-    getItemStats(),
+    getCollectionStats(userId),
+    getItemStats(userId),
   ]);
 
   const stats = [

@@ -30,9 +30,11 @@ export interface CollectionSummary {
  * card's accent color.
  */
 export async function getRecentCollections(
+  userId: string,
   limit = 6,
 ): Promise<CollectionSummary[]> {
   const collections = await prisma.collection.findMany({
+    where: { userId },
     orderBy: { updatedAt: "desc" },
     take: limit,
     include: {
@@ -78,14 +80,14 @@ export async function getRecentCollections(
   });
 }
 
-/** Aggregate collection counts for the dashboard stats row. */
-export async function getCollectionStats(): Promise<{
+/** Aggregate the user's collection counts for the dashboard stats row. */
+export async function getCollectionStats(userId: string): Promise<{
   total: number;
   favorites: number;
 }> {
   const [total, favorites] = await Promise.all([
-    prisma.collection.count(),
-    prisma.collection.count({ where: { isFavorite: true } }),
+    prisma.collection.count({ where: { userId } }),
+    prisma.collection.count({ where: { userId, isFavorite: true } }),
   ]);
 
   return { total, favorites };
@@ -155,18 +157,21 @@ function toSidebarCollection(collection: SidebarCollectionRow): SidebarCollectio
  * non-favorite collections) are rendered with a colored circle drawn from the
  * collection's most-used item type.
  */
-export async function getSidebarCollections(recentLimit = 5): Promise<{
+export async function getSidebarCollections(
+  userId: string,
+  recentLimit = 5,
+): Promise<{
   favorites: SidebarCollection[];
   recents: SidebarCollection[];
 }> {
   const [favorites, recents] = await Promise.all([
     prisma.collection.findMany({
-      where: { isFavorite: true },
+      where: { userId, isFavorite: true },
       orderBy: { updatedAt: "desc" },
       include: sidebarCollectionInclude,
     }),
     prisma.collection.findMany({
-      where: { isFavorite: false },
+      where: { userId, isFavorite: false },
       orderBy: { updatedAt: "desc" },
       take: recentLimit,
       include: sidebarCollectionInclude,

@@ -1,5 +1,6 @@
 import type { ComponentType, CSSProperties } from "react";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import {
   ChevronDown,
   Code,
@@ -58,10 +59,13 @@ const ICON_MAP: Record<string, IconComponent> = {
 const PRO_TYPE_SLUGS = new Set(["file", "image"]);
 
 export async function AppSidebar() {
-  const [itemTypes, { favorites, recents }, session] = await Promise.all([
-    getSidebarItemTypes(),
-    getSidebarCollections(),
-    auth(),
+  const session = await auth();
+  // Route is proxy-protected; this also narrows the id for the scoped queries.
+  if (!session?.user?.id) redirect("/sign-in");
+
+  const [itemTypes, { favorites, recents }] = await Promise.all([
+    getSidebarItemTypes(session.user.id),
+    getSidebarCollections(session.user.id),
   ]);
 
   return (

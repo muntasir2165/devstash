@@ -103,6 +103,10 @@ model Item {
 
   @@index([userId])
   @@index([itemTypeId])
+  // Composites match the user-scoped dashboard/sidebar/type-list queries.
+  @@index([userId, isPinned])
+  @@index([userId, isFavorite])
+  @@index([userId, itemTypeId])
 }
 
 model ItemType {
@@ -139,6 +143,7 @@ model Collection {
   updatedAt   DateTime         @updatedAt
 
   @@index([userId])
+  @@index([userId, isFavorite])
 }
 
 // Join table: items <-> collections (many-to-many)

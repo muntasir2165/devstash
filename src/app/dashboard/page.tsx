@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Pin } from "lucide-react";
 
+import { auth } from "@/auth";
 import { getRecentCollections } from "@/lib/db/collections";
 import { getPinnedItems, getRecentItems } from "@/lib/db/items";
 import { CollectionCard } from "@/components/dashboard/CollectionCard";
@@ -18,10 +20,15 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
+  const session = await auth();
+  // Route is proxy-protected; this also narrows the id for the scoped queries.
+  if (!session?.user?.id) redirect("/sign-in");
+  const userId = session.user.id;
+
   const [collections, pinnedItems, recentItems] = await Promise.all([
-    getRecentCollections(),
-    getPinnedItems(),
-    getRecentItems(),
+    getRecentCollections(userId),
+    getPinnedItems(userId),
+    getRecentItems(userId),
   ]);
 
   return (
@@ -32,7 +39,7 @@ export default async function DashboardPage() {
           <p className="text-muted-foreground">Your developer knowledge hub</p>
         </div>
 
-        <StatsCards />
+        <StatsCards userId={userId} />
 
         <section className="space-y-4">
           <div className="flex items-center justify-between">
