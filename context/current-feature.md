@@ -1,30 +1,22 @@
-# Current Feature: File List View
+# Current Feature
 
-Show file items as a single-column Drive/Dropbox-style list of rows instead of grid cards.
+<!-- One or two sentences describing the feature currently being worked on. -->
 
 ## Status
 
-In Progress
+Not Started
 
 ## Goals
 
-- Render the file type page as a **single-column list** of rows (not the card grid).
-- Each row shows: **file icon by extension**, file name, **file size**, upload date, and a **download button**.
-- **Hover highlight** on the row.
-- **Clicking the row opens the ItemDrawer**; the download button triggers a direct download and must **not** also open the drawer.
-- **Responsive:** stack the row's info vertically on mobile.
+<!-- What this feature needs to accomplish. Replace with concrete goals. -->
+
+-
 
 ## Notes
 
-- ⚠️ **Blocker — card data lacks file metadata.** `ItemSummary`/`itemCardSelect` now include `fileUrl` (added for the gallery) but **not `fileName` or `fileSize`**, which this spec needs for the name, size and extension-derived icon. The list query must be extended again — same class of gap as the gallery feature.
-- ⚠️ **Invalid nesting risk.** `ItemCardTrigger` wraps each card in a real `<button>`. Putting the download control (a `<button>` or `<a download>`) inside it nests interactive content inside a button — invalid HTML, and the reason the spec calls for `stopPropagation`. Plan: don't reuse `ItemCardTrigger` for rows; make the row a non-button container with its own click handler and keep the download control a sibling, so both stay valid and independently clickable.
-- ⚠️ **Route naming:** the spec says `/items/files` (plural) but routes use the **singular** DB slug — the real path is **`/items/file`** (matching `/items/image` from the gallery). Using the singular.
-- Download should go through the existing owner-checked proxy `/api/items/[id]/download` (not the raw R2 URL), consistent with the drawer.
-- `formatBytes` already exists in `src/components/items/FileUpload.tsx` — reuse/lift it rather than writing a second copy.
-- The drawer's download `Button` needs `nativeButton={false}` when rendered as an `<a>` (Base UI a11y rule learned last feature) — applies to any new download control too.
-- Follows the same page-level branch as the gallery: `/items/[type]` picks list vs grid by `itemType.slug`.
-- No schema change, no server-action work — a query-shape tweak plus presentation.
-- Spec: `context/features/file-display-spec.md`.
+<!-- Scope, references, constraints, and anything worth remembering. -->
+
+-
 
 ## History
 
@@ -65,3 +57,4 @@ In Progress
 - **2026-08-14 — Image Gallery View.** On branch `feature/image-gallery` (merged, two commits). Image items on `/items/image` now render as a thumbnail gallery instead of the standard card. **The real work was unblocking the data:** `itemCardSelect`/`ItemSummary`/`toItemSummary` in `src/lib/db/items.ts` never returned `fileUrl` (it existed only on the heavier `ItemDetail`), so no thumbnail was possible until the list query was extended. New `src/components/items/ImageCard.tsx` renders an `aspect-video` frame with `object-cover`, `group-hover:scale-105` over `duration-300`, a title row with pin/favourite markers, and an `ImageOff` fallback tile so a missing upload doesn't show a broken image. `/items/[type]` picks the gallery when `itemType.slug === "image"` (grid `sm:2 / lg:3`) and keeps the standard card for every other type; tiles stay wrapped in `ItemCardTrigger` so they still open the detail drawer. **Scope decision (flagged at load):** the gallery is applied to the `/items/image` page only — the dashboard's Recent/Pinned rows are mixed-type single-column lists that a 16:9 tile would break. Images still use a plain `<img>` rather than `next/image`, since `next.config.ts` has no `images.remotePatterns` for the R2 host. No schema change, no server-action work → suite unchanged at **50/50**; `npm run build` + `npm run lint` pass. **Browser-verified by measurement** (not eyeballing): computed `object-fit: cover`, frame ratio **1.78**, image fills the frame, `transitionDuration: 0.3s` on `transform`; also checked mobile reflow at 390px (single column) and that tiles still open the drawer. This session also confirmed **R2 is now configured and uploads work end-to-end** — a real uploaded image was present, closing the previous feature's biggest untested gap.
   - **Bug found and fixed while reviewing (separate commit `fix: keep native button semantics on drawer download link`):** opening an image's drawer logged a Base UI error — the Download button added in the previous feature used `render={<a …>}` while Base UI's `Button` defaults to `nativeButton: true`, which strips native button semantics (an accessibility problem). Fixed with `nativeButton={false}`. Worth remembering for any future `Button render={<a>}` usage.
   - **Design observations raised, not acted on:** `object-cover` crops portrait/document screenshots to their top ~40%, hiding the useful content (right for photos, poor for document scans — consider `object-contain` or `object-top`); the tile carries title only, less scannable than `ItemCard`; there's no lightbox, so the largest view of an image is the drawer's `max-h-64` preview; and the 3-column rhythm is still unproven with only one image in the DB.
+- **2026-08-16 — File List View.** On branch `feature/file-list-view` (merged). File items on `/items/file` now render as a Drive/Dropbox-style single-column list instead of grid cards. **Data gap closed again:** `itemCardSelect`/`ItemSummary` gained **`fileName` and `fileSize`** (the gallery had added only `fileUrl`), which the row needs for the name, size and extension icon. `formatBytes` was **lifted out of `FileUpload.tsx` into `src/lib/utils.ts`** rather than duplicated, and now has its own tests. New `src/components/items/FileRow.tsx` renders an extension icon, title + original filename, size, upload date and a download control, with a hover highlight; `/items/[type]` picks list (file) vs gallery (image) vs card grid (everything else) off `itemType.slug`. **Two traps avoided/handled:** (1) rows deliberately **do not** use `ItemCardTrigger`, which wraps children in a real `<button>` — putting the download `<a>` inside would be invalid HTML (interactive content nested in a button); the row is instead a `role="button"` container with its own handler plus Enter/Space keyboard support and a focus ring, and the download link is a sibling that calls `stopPropagation`. (2) The first implementation used `const Icon = EXTENSION_ICONS[ext]` and hit a **new React Compiler lint rule — `react-hooks/static-components`, "Cannot create components during render"**; refactored to a switch-based `FileTypeIcon` mirroring the existing `TypeIcon` pattern. Downloads go through the owner-checked proxy `/api/items/[id]/download`, not the raw R2 URL. Note the spec said `/items/files` but routes use the **singular** slug, so the real path is `/items/file`. No schema change, no server-action work. Suite **55/55** (5 new `formatBytes` tests); `npm run build` + `npm run lint` pass. **Browser-verified by interaction:** row click opens the drawer; a dispatched click on the download link did **not** open the drawer (confirming `stopPropagation`); download href points at the proxy; row info stacks vertically at 390px. Residual nit: the row is `role="button"` containing a link — valid HTML but nested interactive semantics, which the spec's row-click-plus-download design implies.
