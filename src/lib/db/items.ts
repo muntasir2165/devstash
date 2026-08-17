@@ -61,10 +61,13 @@ function toItemSummary(item: ItemCardRow): ItemSummary {
   };
 }
 
-/** Fetch pinned items for the dashboard, most recently created first. */
-export async function getPinnedItems(limit = 50): Promise<ItemSummary[]> {
+/** Fetch the user's pinned items for the dashboard, most recently created first. */
+export async function getPinnedItems(
+  userId: string,
+  limit = 50,
+): Promise<ItemSummary[]> {
   const items = await prisma.item.findMany({
-    where: { isPinned: true },
+    where: { userId, isPinned: true },
     orderBy: { createdAt: "desc" },
     take: limit,
     select: itemCardSelect,
@@ -73,9 +76,13 @@ export async function getPinnedItems(limit = 50): Promise<ItemSummary[]> {
   return items.map(toItemSummary);
 }
 
-/** Fetch the most recently created items for the dashboard. */
-export async function getRecentItems(limit = 10): Promise<ItemSummary[]> {
+/** Fetch the user's most recently created items for the dashboard. */
+export async function getRecentItems(
+  userId: string,
+  limit = 10,
+): Promise<ItemSummary[]> {
   const items = await prisma.item.findMany({
+    where: { userId },
     orderBy: { createdAt: "desc" },
     take: limit,
     select: itemCardSelect,
@@ -84,14 +91,14 @@ export async function getRecentItems(limit = 10): Promise<ItemSummary[]> {
   return items.map(toItemSummary);
 }
 
-/** Aggregate item counts for the dashboard stats row. */
-export async function getItemStats(): Promise<{
+/** Aggregate the user's item counts for the dashboard stats row. */
+export async function getItemStats(userId: string): Promise<{
   total: number;
   favorites: number;
 }> {
   const [total, favorites] = await Promise.all([
-    prisma.item.count(),
-    prisma.item.count({ where: { isFavorite: true } }),
+    prisma.item.count({ where: { userId } }),
+    prisma.item.count({ where: { userId, isFavorite: true } }),
   ]);
 
   return { total, favorites };
@@ -124,12 +131,17 @@ const SIDEBAR_TYPE_ORDER = [
 ];
 
 /**
- * Fetch the system item types for the sidebar, each with its item count.
+ * Fetch the system item types for the sidebar, each with the user's item count.
+ *
+ * The type list itself is global (all 7 system types always render); only the
+ * counts are user-scoped, so a user with no items still sees every type at 0.
  *
  * Ordered by the canonical `SIDEBAR_TYPE_ORDER`, with any unlisted types
  * falling back to the end alphabetically.
  */
-export async function getSidebarItemTypes(): Promise<SidebarItemType[]> {
+export async function getSidebarItemTypes(
+  userId: string,
+): Promise<SidebarItemType[]> {
   const types = await prisma.itemType.findMany({
     where: { isSystem: true },
     select: {
@@ -137,7 +149,7 @@ export async function getSidebarItemTypes(): Promise<SidebarItemType[]> {
       name: true,
       icon: true,
       color: true,
-      _count: { select: { items: true } },
+      _count: { select: { items: { where: { userId } } } },
     },
   });
 
@@ -187,10 +199,13 @@ export async function getItemTypeBySlug(
   };
 }
 
-/** Fetch all items of a given type (by id), most recently created first. */
-export async function getItemsByType(typeId: string): Promise<ItemSummary[]> {
+/** Fetch the user's items of a given type (by id), most recently created first. */
+export async function getItemsByType(
+  userId: string,
+  typeId: string,
+): Promise<ItemSummary[]> {
   const items = await prisma.item.findMany({
-    where: { itemTypeId: typeId },
+    where: { userId, itemTypeId: typeId },
     orderBy: { createdAt: "desc" },
     select: itemCardSelect,
   });

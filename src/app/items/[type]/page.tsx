@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 
+import { auth } from "@/auth";
 import { getItemsByType, getItemTypeBySlug } from "@/lib/db/items";
 import {
   CREATABLE_ITEM_TYPES,
@@ -25,10 +26,14 @@ export default async function ItemsByTypePage({
 }) {
   const { type } = await params;
 
+  const session = await auth();
+  // Route is proxy-protected; this also narrows the id for the scoped query.
+  if (!session?.user?.id) redirect("/sign-in");
+
   const itemType = await getItemTypeBySlug(type);
   if (!itemType) notFound();
 
-  const items = await getItemsByType(itemType.id);
+  const items = await getItemsByType(session.user.id, itemType.id);
 
   // Images get a thumbnail gallery instead of the standard card list.
   const isImageGallery = itemType.slug === "image";

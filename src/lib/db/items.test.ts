@@ -4,11 +4,13 @@ vi.mock("@/lib/prisma", () => ({
   prisma: {
     item: {
       findFirst: vi.fn(),
+      findMany: vi.fn(),
+      count: vi.fn(),
       update: vi.fn(),
       deleteMany: vi.fn(),
       create: vi.fn(),
     },
-    itemType: { findFirst: vi.fn() },
+    itemType: { findFirst: vi.fn(), findMany: vi.fn() },
   },
 }));
 
@@ -26,14 +28,22 @@ import {
   createItem,
   deleteItem,
   getItemDetail,
+  getItemStats,
+  getItemsByType,
+  getPinnedItems,
+  getRecentItems,
+  getSidebarItemTypes,
   updateItem,
 } from "@/lib/db/items";
 
 const findFirst = vi.mocked(prisma.item.findFirst);
+const findMany = vi.mocked(prisma.item.findMany);
+const count = vi.mocked(prisma.item.count);
 const update = vi.mocked(prisma.item.update);
 const deleteMany = vi.mocked(prisma.item.deleteMany);
 const create = vi.mocked(prisma.item.create);
 const typeFindFirst = vi.mocked(prisma.itemType.findFirst);
+const typeFindMany = vi.mocked(prisma.itemType.findMany);
 const mockDeleteFromR2 = vi.mocked(deleteFromR2);
 
 beforeEach(() => vi.clearAllMocks());
@@ -240,5 +250,71 @@ describe("createItem", () => {
 
     const data = create.mock.calls[0]?.[0]?.data as Record<string, unknown>;
     expect(data).not.toHaveProperty("tags");
+  });
+});
+
+// Regression guard: these list/count queries were global and leaked every
+// user's data onto the dashboard, sidebar and type pages.
+describe("user scoping of list and count queries", () => {
+  it("getPinnedItems filters by userId as well as isPinned", async () => {
+    findMany.mockResolvedValue([] as never);
+    await getPinnedItems("user-1");
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { userId: "user-1", isPinned: true } }),
+    );
+  });
+
+  it("getRecentItems filters by userId", async () => {
+    findMany.mockResolvedValue([] as never);
+    await getRecentItems("user-1");
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { userId: "user-1" } }),
+    );
+  });
+
+  it("getItemStats scopes both the total and the favorites count", async () => {
+    count.mockResolvedValue(0 as never);
+    await getItemStats("user-1");
+    expect(count).toHaveBeenCalledWith({ where: { userId: "user-1" } });
+    expect(count).toHaveBeenCalledWith({
+      where: { userId: "user-1", isFavorite: true },
+    });
+  });
+
+  it("getItemsByType filters by userId as well as the type", async () => {
+    findMany.mockResolvedValue([] as never);
+    await getItemsByType("user-1", "type-1");
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { userId: "user-1", itemTypeId: "type-1" },
+      }),
+    );
+  });
+
+  it("getSidebarItemTypes scopes the count but still returns every system type", async () => {
+    typeFindMany.mockResolvedValue([
+      {
+        id: "t1",
+        name: "snippet",
+        icon: "Code",
+        color: "#000",
+        _count: { items: 0 },
+      },
+    ] as never);
+
+    const types = await getSidebarItemTypes("user-1");
+
+    const args = typeFindMany.mock.calls[0]?.[0] as {
+      where: unknown;
+      select: { _count: unknown };
+    };
+    // The type list stays global...
+    expect(args.where).toEqual({ isSystem: true });
+    // ...only the relation count is filtered, so empty types still render at 0.
+    expect(args.select._count).toEqual({
+      select: { items: { where: { userId: "user-1" } } },
+    });
+    expect(types).toHaveLength(1);
+    expect(types[0]?.count).toBe(0);
   });
 });

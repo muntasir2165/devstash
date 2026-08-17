@@ -1,17 +1,10 @@
 import { Pin, Star } from "lucide-react";
 
 import type { ItemSummary } from "@/lib/db/items";
+import { formatDate } from "@/lib/utils";
 import { CardCopyButton } from "@/components/items/CardCopyButton";
 
 import { TypeIcon } from "./TypeIcon";
-
-function formatDate(date: Date) {
-  return date.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    timeZone: "UTC",
-  });
-}
 
 export function ItemCard({ item }: { item: ItemSummary }) {
   return (

@@ -34,30 +34,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Field } from "./Field";
 
 type ItemType = CreatableItemType;
 
 const CONTENT_TYPES = new Set<ItemType>(["snippet", "prompt", "command", "note"]);
 const LANGUAGE_TYPES = new Set<ItemType>(["snippet", "command"]);
 
-function Field({
-  label,
-  htmlFor,
-  children,
-}: {
-  label: string;
-  htmlFor: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="grid gap-1.5">
-      <label htmlFor={htmlFor} className="text-sm font-medium">
-        {label}
-      </label>
-      {children}
-    </div>
-  );
-}
 
 export function NewItemDialog({
   defaultType = "snippet",

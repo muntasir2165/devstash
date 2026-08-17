@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 
 import type { ItemDetail } from "@/lib/db/items";
-import { cn } from "@/lib/utils";
+import { cn, formatBytes, formatDate } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -30,21 +30,6 @@ import { MarkdownEditor } from "./MarkdownEditor";
 const CODE_TYPES = new Set(["snippet", "command"]);
 /** Types whose content is markdown. */
 const MARKDOWN_TYPES = new Set(["note", "prompt"]);
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-}
-
-function formatSize(bytes: number | null) {
-  if (bytes == null) return null;
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
 
 export function ItemDetailDrawer({
   itemId,
@@ -140,7 +125,7 @@ function DrawerBody({
   onEdit: () => void;
   onDeleted: () => void;
 }) {
-  const size = formatSize(item.fileSize);
+  const size = item.fileSize == null ? null : formatBytes(item.fileSize);
   const copyText = item.content ?? item.url ?? "";
 
   return (
@@ -277,11 +262,11 @@ function DrawerBody({
         <dl className="space-y-1 text-sm">
           <div className="flex items-center justify-between">
             <dt className="text-muted-foreground">Created</dt>
-            <dd>{formatDate(item.createdAt)}</dd>
+            <dd>{formatDate(item.createdAt, "long")}</dd>
           </div>
           <div className="flex items-center justify-between">
             <dt className="text-muted-foreground">Updated</dt>
-            <dd>{formatDate(item.updatedAt)}</dd>
+            <dd>{formatDate(item.updatedAt, "long")}</dd>
           </div>
         </dl>
       </Section>

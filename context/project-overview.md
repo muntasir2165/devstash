@@ -49,7 +49,7 @@ Items have a **type**. Users can create custom types (Pro, later), but these **s
 
 - A type resolves to one of three storage kinds: **text**, **url**, or **file**.
 - Items are quick to create and open inside a **drawer**.
-- Routing convention: `/items/snippets`, `/items/prompts`, etc.
+- Routing convention: **singular** type slugs — `/items/snippet`, `/items/prompt`, etc.
 
 ### B. Collections
 - Users create **collections** that can hold items of **any type**.
@@ -326,6 +326,7 @@ flowchart TB
 | AI | [OpenAI](https://platform.openai.com) `gpt-5-nano` | Tagging, summaries, explain, prompt optimizer |
 | Styling | [Tailwind CSS v4](https://tailwindcss.com) + [shadcn/ui](https://ui.shadcn.com) | |
 | Icons | [Lucide](https://lucide.dev) | Per-type icons |
+| Testing | [Vitest](https://vitest.dev) | Unit tests for server actions + utilities only, not components |
 | Billing | [Stripe](https://stripe.com) | Freemium subscriptions |
 
 **Architecture principle:** one codebase / one repo for minimal overhead.
@@ -341,8 +342,8 @@ flowchart TB
 
 Refer to the screenshots below as a base for the dashboard UI. It does not have to be exact. Use it as a reference:
 
-- @context/screnshots/dashboard-ui-main.png
-- @context/screnshots/dashboard-ui-drawer.png
+- @context/screenshots/dashboard-ui-main.png
+- @context/screenshots/dashboard-ui-drawer.png
 
 
 ### Layout
