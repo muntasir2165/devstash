@@ -4,7 +4,11 @@ import type { ReactNode } from "react";
 
 import { useItemDrawer } from "./ItemDrawerProvider";
 
-/** Wraps a (server-rendered) ItemCard in a clickable button that opens the drawer. */
+/**
+ * Makes a (server-rendered) card open the drawer. A `role="button"` container
+ * rather than a real <button> so cards can contain their own actions (e.g. the
+ * copy control) without nesting interactive elements inside a button.
+ */
 export function ItemCardTrigger({
   id,
   children,
@@ -14,12 +18,19 @@ export function ItemCardTrigger({
 }) {
   const { openItem } = useItemDrawer();
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={() => openItem(id)}
-      className="block w-full cursor-pointer text-left"
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          openItem(id);
+        }
+      }}
+      className="block w-full cursor-pointer rounded-xl text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
     >
       {children}
-    </button>
+    </div>
   );
 }

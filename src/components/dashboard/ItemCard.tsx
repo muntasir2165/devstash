@@ -1,6 +1,7 @@
 import { Pin, Star } from "lucide-react";
 
 import type { ItemSummary } from "@/lib/db/items";
+import { CardCopyButton } from "@/components/items/CardCopyButton";
 
 import { TypeIcon } from "./TypeIcon";
 
@@ -15,7 +16,7 @@ function formatDate(date: Date) {
 export function ItemCard({ item }: { item: ItemSummary }) {
   return (
     <div
-      className="flex gap-3 rounded-xl border border-l-4 bg-card p-4"
+      className="relative flex gap-3 rounded-xl border border-l-4 bg-card p-4"
       style={{ borderLeftColor: item.color }}
     >
       <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted">
@@ -45,7 +46,7 @@ export function ItemCard({ item }: { item: ItemSummary }) {
         )}
 
         {item.tags.length > 0 && (
-          <div className="mt-2 flex flex-wrap gap-1.5">
+          <div className="mt-2 flex flex-wrap gap-1.5 pr-8">
             {item.tags.map((tag, index) => (
               <span
                 key={`${tag}-${index}`}
@@ -57,6 +58,11 @@ export function ItemCard({ item }: { item: ItemSummary }) {
           </div>
         )}
       </div>
+
+      <CardCopyButton
+        value={item.copyText}
+        className="absolute right-2 bottom-2"
+      />
     </div>
   );
 }

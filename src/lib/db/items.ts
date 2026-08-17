@@ -20,6 +20,8 @@ export interface ItemSummary {
   /** Original upload name — drives the file list's name and extension icon. */
   fileName: string | null;
   fileSize: number | null;
+  /** Text the card's quick-copy button puts on the clipboard. */
+  copyText: string | null;
 }
 
 /** Fields needed to render an item card, including its type and tags. */
@@ -33,6 +35,8 @@ const itemCardSelect = {
   fileUrl: true,
   fileName: true,
   fileSize: true,
+  content: true,
+  url: true,
   itemType: { select: { icon: true, color: true } },
   tags: { select: { name: true } },
 } satisfies Prisma.ItemSelect;
@@ -53,6 +57,7 @@ function toItemSummary(item: ItemCardRow): ItemSummary {
     fileUrl: item.fileUrl,
     fileName: item.fileName,
     fileSize: item.fileSize,
+    copyText: item.content ?? item.url,
   };
 }
 
