@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 
 import type { ItemSummary } from "@/lib/db/items";
-import { formatBytes } from "@/lib/utils";
+import { formatBytes, formatDate } from "@/lib/utils";
 import { useItemDrawer } from "./ItemDrawerProvider";
 
 /**
@@ -39,15 +39,6 @@ function FileTypeIcon({ fileName }: { fileName: string | null }) {
     default:
       return <FileIcon {...props} />;
   }
-}
-
-function formatDate(date: Date) {
-  return date.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    timeZone: "UTC",
-  });
 }
 
 /**
@@ -97,7 +88,7 @@ export function FileRow({ item }: { item: ItemSummary }) {
           {item.fileSize != null ? formatBytes(item.fileSize) : "—"}
         </span>
         <span className="shrink-0 text-xs text-muted-foreground">
-          {formatDate(item.createdAt)}
+          {formatDate(item.createdAt, "medium")}
         </span>
         <a
           href={`/api/items/${item.id}/download`}

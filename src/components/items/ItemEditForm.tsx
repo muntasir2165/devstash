@@ -9,29 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { CodeEditor } from "./CodeEditor";
+import { Field } from "./Field";
 import { MarkdownEditor } from "./MarkdownEditor";
 
 const CONTENT_TYPES = new Set(["snippet", "prompt", "command", "note"]);
 const LANGUAGE_TYPES = new Set(["snippet", "command"]);
-
-function Field({
-  label,
-  htmlFor,
-  children,
-}: {
-  label: string;
-  htmlFor: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="grid gap-1.5">
-      <label htmlFor={htmlFor} className="text-sm font-medium">
-        {label}
-      </label>
-      {children}
-    </div>
-  );
-}
 
 export function ItemEditForm({
   item,
