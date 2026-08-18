@@ -7,16 +7,14 @@ import { toast } from "sonner";
 
 import { createItem } from "@/lib/item-actions";
 import {
+  CONTENT_ITEM_TYPES,
   CREATABLE_ITEM_TYPES,
+  LANGUAGE_ITEM_TYPES,
   isUploadType,
   type CreatableItemType,
 } from "@/lib/item-constants";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { CodeEditor } from "./CodeEditor";
 import { FileUpload, type UploadedFile } from "./FileUpload";
-import { MarkdownEditor } from "./MarkdownEditor";
 import {
   Dialog,
   DialogClose,
@@ -35,12 +33,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Field } from "./Field";
+import { ItemFormFields, type ItemFormValues } from "./ItemFormFields";
 
 type ItemType = CreatableItemType;
 
-const CONTENT_TYPES = new Set<ItemType>(["snippet", "prompt", "command", "note"]);
-const LANGUAGE_TYPES = new Set<ItemType>(["snippet", "command"]);
-
+const EMPTY_VALUES: ItemFormValues = {
+  title: "",
+  description: "",
+  content: "",
+  language: "",
+  url: "",
+  tags: "",
+};
 
 export function NewItemDialog({
   defaultType = "snippet",
@@ -52,24 +56,21 @@ export function NewItemDialog({
 } = {}) {
   const [open, setOpen] = useState(false);
   const [type, setType] = useState<ItemType>(defaultType);
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [content, setContent] = useState("");
-  const [language, setLanguage] = useState("");
-  const [url, setUrl] = useState("");
-  const [tags, setTags] = useState("");
+  const [values, setValues] = useState<ItemFormValues>(EMPTY_VALUES);
   const [upload, setUpload] = useState<UploadedFile | null>(null);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
 
+  function setField<K extends keyof ItemFormValues>(
+    field: K,
+    value: ItemFormValues[K],
+  ) {
+    setValues((current) => ({ ...current, [field]: value }));
+  }
+
   function reset() {
     setType(defaultType);
-    setTitle("");
-    setDescription("");
-    setContent("");
-    setLanguage("");
-    setUrl("");
-    setTags("");
+    setValues(EMPTY_VALUES);
     setUpload(null);
   }
 
@@ -78,15 +79,15 @@ export function NewItemDialog({
     startTransition(async () => {
       const result = await createItem({
         type,
-        title,
-        description,
-        content: CONTENT_TYPES.has(type) ? content : "",
-        language: LANGUAGE_TYPES.has(type) ? language : "",
-        url: type === "link" ? url : "",
+        title: values.title,
+        description: values.description,
+        content: CONTENT_ITEM_TYPES.has(type) ? values.content : "",
+        language: LANGUAGE_ITEM_TYPES.has(type) ? values.language : "",
+        url: type === "link" ? values.url : "",
         fileUrl: upload?.url ?? null,
         fileName: upload?.fileName ?? null,
         fileSize: upload?.fileSize ?? null,
-        tags: tags
+        tags: values.tags
           .split(",")
           .map((tag) => tag.trim())
           .filter(Boolean),
@@ -146,86 +147,23 @@ export function NewItemDialog({
             </Select>
           </Field>
 
-          <Field label="Title" htmlFor="new-item-title">
-            <Input
-              id="new-item-title"
-              value={title}
-              onChange={(event) => setTitle(event.target.value)}
-              required
-            />
-          </Field>
-
-          <Field label="Description" htmlFor="new-item-description">
-            <Textarea
-              id="new-item-description"
-              value={description}
-              onChange={(event) => setDescription(event.target.value)}
-              rows={2}
-            />
-          </Field>
-
-          {isUploadType(type) ? (
-            <Field
-              label={type === "image" ? "Image" : "File"}
-              htmlFor="new-item-upload"
-            >
-              <FileUpload
-                kind={type}
-                value={upload}
-                onChange={setUpload}
-              />
-            </Field>
-          ) : null}
-
-          {CONTENT_TYPES.has(type) ? (
-            <Field label="Content" htmlFor="new-item-content">
-              {LANGUAGE_TYPES.has(type) ? (
-                <CodeEditor
-                  value={content}
-                  language={language}
-                  onChange={setContent}
-                />
-              ) : (
-                <MarkdownEditor value={content} onChange={setContent} />
-              )}
-            </Field>
-          ) : null}
-
-          {LANGUAGE_TYPES.has(type) ? (
-            <Field label="Language" htmlFor="new-item-language">
-              <Input
-                id="new-item-language"
-                value={language}
-                onChange={(event) => setLanguage(event.target.value)}
-                placeholder="typescript"
-              />
-            </Field>
-          ) : null}
-
-          {type === "link" ? (
-            <Field label="URL" htmlFor="new-item-url">
-              <Input
-                id="new-item-url"
-                type="url"
-                value={url}
-                onChange={(event) => setUrl(event.target.value)}
-                placeholder="https://example.com"
-                required
-              />
-            </Field>
-          ) : null}
-
-          <Field label="Tags" htmlFor="new-item-tags">
-            <Input
-              id="new-item-tags"
-              value={tags}
-              onChange={(event) => setTags(event.target.value)}
-              placeholder="react, hooks"
-            />
-            <p className="text-xs text-muted-foreground">
-              Separate tags with commas.
-            </p>
-          </Field>
+          <ItemFormFields
+            type={type}
+            idPrefix="new-item"
+            values={values}
+            onChange={setField}
+            urlRequired
+            afterDescription={
+              isUploadType(type) ? (
+                <Field
+                  label={type === "image" ? "Image" : "File"}
+                  htmlFor="new-item-upload"
+                >
+                  <FileUpload kind={type} value={upload} onChange={setUpload} />
+                </Field>
+              ) : null
+            }
+          />
 
           <DialogFooter>
             <DialogClose render={<Button type="button" variant="ghost" />}>
@@ -234,7 +172,7 @@ export function NewItemDialog({
             <Button
               type="submit"
               disabled={
-                pending || !title.trim() || (isUploadType(type) && !upload)
+                pending || !values.title.trim() || (isUploadType(type) && !upload)
               }
             >
               {pending ? "Creating…" : "Create item"}

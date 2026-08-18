@@ -4,16 +4,13 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import type { ItemDetail } from "@/lib/db/items";
+import {
+  CONTENT_ITEM_TYPES,
+  LANGUAGE_ITEM_TYPES,
+} from "@/lib/item-constants";
 import { updateItem } from "@/lib/item-actions";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { CodeEditor } from "./CodeEditor";
-import { Field } from "./Field";
-import { MarkdownEditor } from "./MarkdownEditor";
-
-const CONTENT_TYPES = new Set(["snippet", "prompt", "command", "note"]);
-const LANGUAGE_TYPES = new Set(["snippet", "command"]);
+import { ItemFormFields, type ItemFormValues } from "./ItemFormFields";
 
 export function ItemEditForm({
   item,
@@ -25,24 +22,37 @@ export function ItemEditForm({
   onSaved: (updated: ItemDetail) => void;
 }) {
   const typeName = item.type.name.toLowerCase();
-  const [title, setTitle] = useState(item.title);
-  const [description, setDescription] = useState(item.description ?? "");
-  const [content, setContent] = useState(item.content ?? "");
-  const [language, setLanguage] = useState(item.language ?? "");
-  const [url, setUrl] = useState(item.url ?? "");
-  const [tags, setTags] = useState(item.tags.join(", "));
+  const [values, setValues] = useState<ItemFormValues>({
+    title: item.title,
+    description: item.description ?? "",
+    content: item.content ?? "",
+    language: item.language ?? "",
+    url: item.url ?? "",
+    tags: item.tags.join(", "),
+  });
   const [pending, startTransition] = useTransition();
+
+  function setField<K extends keyof ItemFormValues>(
+    field: K,
+    value: ItemFormValues[K],
+  ) {
+    setValues((current) => ({ ...current, [field]: value }));
+  }
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     startTransition(async () => {
       const result = await updateItem(item.id, {
-        title,
-        description,
-        content: CONTENT_TYPES.has(typeName) ? content : item.content,
-        language: LANGUAGE_TYPES.has(typeName) ? language : item.language,
-        url: typeName === "link" ? url : item.url,
-        tags: tags
+        title: values.title,
+        description: values.description,
+        content: CONTENT_ITEM_TYPES.has(typeName)
+          ? values.content
+          : item.content,
+        language: LANGUAGE_ITEM_TYPES.has(typeName)
+          ? values.language
+          : item.language,
+        url: typeName === "link" ? values.url : item.url,
+        tags: values.tags
           .split(",")
           .map((tag) => tag.trim())
           .filter(Boolean),
@@ -59,73 +69,15 @@ export function ItemEditForm({
 
   return (
     <form onSubmit={handleSubmit} className="grid gap-4">
-      <Field label="Title" htmlFor="item-title">
-        <Input
-          id="item-title"
-          value={title}
-          onChange={(event) => setTitle(event.target.value)}
-          required
-        />
-      </Field>
-
-      <Field label="Description" htmlFor="item-description">
-        <Textarea
-          id="item-description"
-          value={description}
-          onChange={(event) => setDescription(event.target.value)}
-          rows={2}
-        />
-      </Field>
-
-      {CONTENT_TYPES.has(typeName) ? (
-        <Field label="Content" htmlFor="item-content">
-          {LANGUAGE_TYPES.has(typeName) ? (
-            <CodeEditor
-              value={content}
-              language={language}
-              onChange={setContent}
-            />
-          ) : (
-            <MarkdownEditor value={content} onChange={setContent} />
-          )}
-        </Field>
-      ) : null}
-
-      {LANGUAGE_TYPES.has(typeName) ? (
-        <Field label="Language" htmlFor="item-language">
-          <Input
-            id="item-language"
-            value={language}
-            onChange={(event) => setLanguage(event.target.value)}
-            placeholder="typescript"
-          />
-        </Field>
-      ) : null}
-
-      {typeName === "link" ? (
-        <Field label="URL" htmlFor="item-url">
-          <Input
-            id="item-url"
-            type="url"
-            value={url}
-            onChange={(event) => setUrl(event.target.value)}
-            placeholder="https://example.com"
-          />
-        </Field>
-      ) : null}
-
-      <Field label="Tags" htmlFor="item-tags">
-        <Input
-          id="item-tags"
-          value={tags}
-          onChange={(event) => setTags(event.target.value)}
-          placeholder="react, hooks"
-        />
-        <p className="text-xs text-muted-foreground">Separate tags with commas.</p>
-      </Field>
+      <ItemFormFields
+        type={typeName}
+        idPrefix="item"
+        values={values}
+        onChange={setField}
+      />
 
       <div className="flex items-center gap-2 border-t pt-4">
-        <Button type="submit" disabled={pending || !title.trim()}>
+        <Button type="submit" disabled={pending || !values.title.trim()}>
           {pending ? "Saving…" : "Save"}
         </Button>
         <Button
