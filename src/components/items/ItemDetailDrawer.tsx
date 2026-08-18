@@ -1,35 +1,19 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  Calendar,
-  Copy,
-  Download,
-  FolderOpen,
-  Pencil,
-  Pin,
-  Star,
-  Tag,
-  type LucideIcon,
-} from "lucide-react";
+import { Calendar, FolderOpen, Tag } from "lucide-react";
 
 import type { ItemDetail } from "@/lib/db/items";
-import { cn, formatBytes, formatDate } from "@/lib/utils";
+import { formatDate } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
-import { TypeIcon } from "@/components/dashboard/TypeIcon";
-import { CodeEditor } from "./CodeEditor";
-import { DeleteItemDialog } from "./DeleteItemDialog";
+import { DrawerSection } from "./DrawerSection";
+import { ItemActionBar } from "./ItemActionBar";
+import { ItemContentSection } from "./ItemContentSection";
+import { ItemDrawerHeader } from "./ItemDrawerHeader";
 import { ItemEditForm } from "./ItemEditForm";
-import { MarkdownEditor } from "./MarkdownEditor";
-
-/** Types whose content is code and renders in the Monaco editor. */
-const CODE_TYPES = new Set(["snippet", "command"]);
-/** Types whose content is markdown. */
-const MARKDOWN_TYPES = new Set(["note", "prompt"]);
 
 export function ItemDetailDrawer({
   itemId,
@@ -125,117 +109,21 @@ function DrawerBody({
   onEdit: () => void;
   onDeleted: () => void;
 }) {
-  const size = item.fileSize == null ? null : formatBytes(item.fileSize);
-  const copyText = item.content ?? item.url ?? "";
-
   return (
     <div className="flex flex-col gap-5 p-5">
-      <div className="flex items-start gap-3 pr-8">
-        <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted">
-          <TypeIcon icon={item.type.icon} color={item.type.color} />
-        </div>
-        <div className="min-w-0 space-y-1.5">
-          <h2 className="truncate text-lg font-semibold">{item.title}</h2>
-          <div className="flex flex-wrap gap-1.5">
-            <Badge variant="secondary" className="capitalize">
-              {item.type.name}
-            </Badge>
-            {item.language ? (
-              <Badge variant="secondary">{item.language}</Badge>
-            ) : null}
-          </div>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-1 border-y py-1">
-        <Button variant="ghost" size="sm" className="gap-1.5">
-          <Star
-            className={cn(
-              "size-4",
-              item.isFavorite && "fill-yellow-400 text-yellow-400",
-            )}
-          />
-          Favorite
-        </Button>
-        <Button variant="ghost" size="sm" className="gap-1.5">
-          <Pin className={cn("size-4", item.isPinned && "fill-current")} />
-          Pin
-        </Button>
-        <CopyButton text={copyText} />
-        <div className="ml-auto flex items-center gap-1">
-          <Button variant="ghost" size="sm" className="gap-1.5" onClick={onEdit}>
-            <Pencil className="size-4" />
-            Edit
-          </Button>
-          <DeleteItemDialog
-            itemId={item.id}
-            itemTitle={item.title}
-            onDeleted={onDeleted}
-          />
-        </div>
-      </div>
+      <ItemDrawerHeader item={item} />
+      <ItemActionBar item={item} onEdit={onEdit} onDeleted={onDeleted} />
 
       {item.description ? (
-        <Section label="Description">
+        <DrawerSection label="Description">
           <p className="text-sm text-muted-foreground">{item.description}</p>
-        </Section>
+        </DrawerSection>
       ) : null}
 
-      {item.url ? (
-        <Section label="URL">
-          <a
-            href={item.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sm break-all text-primary underline underline-offset-2"
-          >
-            {item.url}
-          </a>
-        </Section>
-      ) : item.fileUrl ? (
-        <Section label={item.type.name.toLowerCase() === "image" ? "Image" : "File"}>
-          {item.type.name.toLowerCase() === "image" ? (
-            // Remote R2 host isn't configured in next.config images — plain img is intentional.
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={item.fileUrl}
-              alt={item.fileName ?? item.title}
-              className="max-h-64 w-full rounded-lg border object-contain"
-            />
-          ) : null}
-          <div className="mt-2 flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-1.5"
-              nativeButton={false}
-              render={<a href={`/api/items/${item.id}/download`} download />}
-            >
-              <Download className="size-4" />
-              Download
-            </Button>
-            <span className="min-w-0 truncate text-xs text-muted-foreground">
-              {item.fileName}
-              {size ? ` · ${size}` : ""}
-            </span>
-          </div>
-        </Section>
-      ) : item.content ? (
-        <Section label="Content">
-          {CODE_TYPES.has(item.type.name.toLowerCase()) ? (
-            <CodeEditor value={item.content} language={item.language} readOnly />
-          ) : MARKDOWN_TYPES.has(item.type.name.toLowerCase()) ? (
-            <MarkdownEditor value={item.content} readOnly />
-          ) : (
-            <pre className="overflow-x-auto rounded-lg border bg-muted/50 p-4 text-xs leading-relaxed">
-              <code>{item.content}</code>
-            </pre>
-          )}
-        </Section>
-      ) : null}
+      <ItemContentSection item={item} />
 
       {item.tags.length > 0 ? (
-        <Section label="Tags" icon={Tag}>
+        <DrawerSection label="Tags" icon={Tag}>
           <div className="flex flex-wrap gap-1.5">
             {item.tags.map((tag) => (
               <Badge key={tag} variant="secondary">
@@ -243,11 +131,11 @@ function DrawerBody({
               </Badge>
             ))}
           </div>
-        </Section>
+        </DrawerSection>
       ) : null}
 
       {item.collections.length > 0 ? (
-        <Section label="Collections" icon={FolderOpen}>
+        <DrawerSection label="Collections" icon={FolderOpen}>
           <div className="flex flex-wrap gap-1.5">
             {item.collections.map((collection) => (
               <Badge key={collection.id} variant="secondary">
@@ -255,10 +143,10 @@ function DrawerBody({
               </Badge>
             ))}
           </div>
-        </Section>
+        </DrawerSection>
       ) : null}
 
-      <Section label="Details" icon={Calendar}>
+      <DrawerSection label="Details" icon={Calendar}>
         <dl className="space-y-1 text-sm">
           <div className="flex items-center justify-between">
             <dt className="text-muted-foreground">Created</dt>
@@ -269,49 +157,8 @@ function DrawerBody({
             <dd>{formatDate(item.updatedAt, "long")}</dd>
           </div>
         </dl>
-      </Section>
+      </DrawerSection>
     </div>
-  );
-}
-
-function Section({
-  label,
-  icon: Icon,
-  children,
-}: {
-  label: string;
-  icon?: LucideIcon;
-  children: ReactNode;
-}) {
-  return (
-    <section className="space-y-2">
-      <div className="flex items-center gap-1.5 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-        {Icon ? <Icon className="size-3.5" /> : null}
-        {label}
-      </div>
-      {children}
-    </section>
-  );
-}
-
-function CopyButton({ text }: { text: string }) {
-  const [copied, setCopied] = useState(false);
-  return (
-    <Button
-      variant="ghost"
-      size="sm"
-      className="gap-1.5"
-      disabled={!text}
-      onClick={() => {
-        if (!text) return;
-        void navigator.clipboard.writeText(text);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1500);
-      }}
-    >
-      <Copy className="size-4" />
-      {copied ? "Copied" : "Copy"}
-    </Button>
   );
 }
 
