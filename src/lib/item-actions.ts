@@ -8,8 +8,8 @@ import {
   createItem as createItemQuery,
   deleteItem as deleteItemQuery,
   updateItem as updateItemQuery,
-  type ItemDetail,
-} from "@/lib/db/items";
+} from "@/lib/db/items-mutations";
+import { type ItemDetail } from "@/lib/db/items";
 
 // Empty inputs come back from the form as "" — treat them as "no value".
 const emptyToNull = (value: unknown) =>

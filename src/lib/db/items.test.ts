@@ -27,13 +27,15 @@ import { deleteFromR2 } from "@/lib/r2";
 import {
   createItem,
   deleteItem,
+  updateItem,
+} from "@/lib/db/items-mutations";
+import {
   getItemDetail,
   getItemStats,
   getItemsByType,
   getPinnedItems,
   getRecentItems,
   getSidebarItemTypes,
-  updateItem,
 } from "@/lib/db/items";
 
 const findFirst = vi.mocked(prisma.item.findFirst);

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/auth", () => ({ auth: vi.fn() }));
-vi.mock("@/lib/db/items", () => ({
+vi.mock("@/lib/db/items-mutations", () => ({
   updateItem: vi.fn(),
   deleteItem: vi.fn(),
   createItem: vi.fn(),
@@ -12,7 +12,7 @@ import {
   updateItem as updateItemQuery,
   deleteItem as deleteItemQuery,
   createItem as createItemQuery,
-} from "@/lib/db/items";
+} from "@/lib/db/items-mutations";
 import { createItem, deleteItem, updateItem } from "@/lib/item-actions";
 
 const mockAuth = vi.mocked(auth);

@@ -21,3 +21,23 @@ export const UPLOAD_ITEM_TYPES = ["file", "image"] as const;
 export function isUploadType(type: string): type is "file" | "image" {
   return type === "file" || type === "image";
 }
+
+/** Types that have a free-text content body. */
+export const CONTENT_ITEM_TYPES: ReadonlySet<string> = new Set([
+  "snippet",
+  "prompt",
+  "command",
+  "note",
+]);
+
+/** Content types edited as code (Monaco) rather than markdown. */
+export const LANGUAGE_ITEM_TYPES: ReadonlySet<string> = new Set([
+  "snippet",
+  "command",
+]);
+
+/** Content types edited and previewed as markdown. */
+export const MARKDOWN_ITEM_TYPES: ReadonlySet<string> = new Set([
+  "note",
+  "prompt",
+]);
