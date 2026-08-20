@@ -93,6 +93,30 @@ export async function getCollectionStats(userId: string): Promise<{
   return { total, favorites };
 }
 
+/** Fields needed to create a collection from the "New Collection" dialog. */
+export interface CreateCollectionData {
+  name: string;
+  description?: string | null;
+}
+
+/** Create a collection owned by `userId`. */
+export async function createCollection(
+  userId: string,
+  data: CreateCollectionData,
+): Promise<CollectionSummary> {
+  const collection = await prisma.collection.create({
+    data: {
+      name: data.name,
+      description: data.description ?? null,
+      userId,
+    },
+    select: { id: true, name: true, description: true, isFavorite: true },
+  });
+
+  // A new collection has no items, so it has no count and no types yet.
+  return { ...collection, itemCount: 0, types: [] };
+}
+
 /** A collection shaped for the sidebar Collections list. */
 export interface SidebarCollection {
   id: string;

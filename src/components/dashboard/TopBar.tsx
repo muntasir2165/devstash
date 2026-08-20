@@ -1,8 +1,8 @@
-import { FolderPlus, Search } from "lucide-react";
+import { Search } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { NewCollectionDialog } from "@/components/collections/NewCollectionDialog";
 import { NewItemDialog } from "@/components/items/NewItemDialog";
 
 export function TopBar() {
@@ -21,10 +21,7 @@ export function TopBar() {
       </div>
 
       <div className="ml-auto flex items-center gap-2">
-        <Button variant="outline" size="lg">
-          <FolderPlus />
-          New Collection
-        </Button>
+        <NewCollectionDialog />
         <NewItemDialog />
       </div>
     </header>

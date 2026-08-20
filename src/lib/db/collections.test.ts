@@ -5,12 +5,14 @@ vi.mock("@/lib/prisma", () => ({
     collection: {
       findMany: vi.fn(),
       count: vi.fn(),
+      create: vi.fn(),
     },
   },
 }));
 
 import { prisma } from "@/lib/prisma";
 import {
+  createCollection,
   getCollectionStats,
   getRecentCollections,
   getSidebarCollections,
@@ -18,6 +20,7 @@ import {
 
 const findMany = vi.mocked(prisma.collection.findMany);
 const count = vi.mocked(prisma.collection.count);
+const create = vi.mocked(prisma.collection.create);
 
 beforeEach(() => vi.clearAllMocks());
 
@@ -54,5 +57,47 @@ describe("user scoping of collection queries", () => {
         where: { userId: "user-1", isFavorite: false },
       }),
     );
+  });
+});
+
+describe("createCollection", () => {
+  it("creates scoped to the owner and defaults a missing description to null", async () => {
+    create.mockResolvedValue({
+      id: "col-1",
+      name: "React Patterns",
+      description: null,
+      isFavorite: false,
+    } as never);
+
+    await createCollection("user-1", { name: "React Patterns" });
+
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: { name: "React Patterns", description: null, userId: "user-1" },
+      }),
+    );
+  });
+
+  it("returns a card-ready summary with no items or types yet", async () => {
+    create.mockResolvedValue({
+      id: "col-1",
+      name: "React Patterns",
+      description: "Hooks",
+      isFavorite: false,
+    } as never);
+
+    const summary = await createCollection("user-1", {
+      name: "React Patterns",
+      description: "Hooks",
+    });
+
+    expect(summary).toEqual({
+      id: "col-1",
+      name: "React Patterns",
+      description: "Hooks",
+      isFavorite: false,
+      itemCount: 0,
+      types: [],
+    });
   });
 });
